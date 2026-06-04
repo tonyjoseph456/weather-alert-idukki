@@ -1,7 +1,11 @@
+from flask import Flask
 import os
 import requests
 
+app = Flask(__name__)
+
 DATASET_ID = "NYyRqc7fTqJQwsvDJ"
+
 
 def get_latest_nowcast():
     token = os.getenv("APIFY_TOKEN")
@@ -37,24 +41,29 @@ def contains_idukki(post):
     )
 
 
-if __name__ == "__main__":
+@app.route("/")
+def home():
+    return "Weather Alert Service Running"
+
+
+@app.route("/check")
+def check():
 
     nowcast = get_latest_nowcast()
 
     if not nowcast:
-        print("No NOWCAST post found")
-        exit()
+        return {
+            "status": "no_nowcast_found"
+        }
 
-    print("\n===== LATEST NOWCAST =====\n")
+    return {
+        "status": "success",
+        "time": nowcast.get("time"),
+        "url": nowcast.get("url"),
+        "contains_idukki": contains_idukki(nowcast),
+        "text": nowcast.get("text")
+    }
 
-    print("Time:")
-    print(nowcast.get("time"))
 
-    print("\nURL:")
-    print(nowcast.get("url"))
-
-    print("\nContains Idukki:")
-    print(contains_idukki(nowcast))
-
-    print("\nPost Text:")
-    print(nowcast.get("text"))
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
