@@ -6,14 +6,15 @@ import re
 
 app = Flask(__name__)
 
+# Your Apify Dataset ID
 DATASET_ID = "NYyRqc7fTqJQwsvDJ"
 
 
-def get_posts(limit=50):
+def get_posts(limit=100):
     token = os.getenv("APIFY_TOKEN")
 
     if not token:
-        raise Exception("APIFY_TOKEN not configured")
+        raise Exception("APIFY_TOKEN environment variable not configured")
 
     url = (
         f"https://api.apify.com/v2/datasets/"
@@ -31,7 +32,7 @@ def get_posts(limit=50):
 
 def is_nowcast(post):
     text = post.get("text", "")
-    return "NOWCAST - " in text.upper()
+    return "NOWCAST" in text.upper()
 
 
 def contains_idukki(post):
@@ -67,7 +68,7 @@ def extract_issue_datetime(text):
     if time_match:
         issue_time = time_match.group(1)
 
-    # Malayalam section fallback
+    # Malayalam fallback
     if issue_date == "Unknown":
 
         mal_date = re.search(
@@ -92,35 +93,6 @@ def extract_issue_datetime(text):
     return issue_date, issue_time
 
 
-def get_latest_idukki_nowcast():
-
-    posts = get_posts(50)
-
-    for post in posts:
-
-        if not is_nowcast(post):
-            continue
-
-        if not contains_idukki(post):
-            continue
-
-        issue_date, issue_time = extract_issue_datetime(
-            post.get("text", "")
-        )
-
-        return {
-            "fb_post_time": post.get("time"),
-            "issue_date": issue_date,
-            "issue_time": issue_time,
-            "url": post.get("url"),
-            "likes": post.get("likes"),
-            "shares": post.get("shares"),
-            "text": post.get("text")
-        }
-
-    return None
-
-
 def get_last_5_idukki_nowcasts():
 
     posts = get_posts(100)
@@ -140,12 +112,10 @@ def get_last_5_idukki_nowcasts():
         )
 
         results.append({
-            "fb_post_time": post.get("time"),
+            "fb_post_datetime": post.get("time"),
             "issue_date": issue_date,
             "issue_time": issue_time,
-            "url": post.get("url"),
-            "likes": post.get("likes"),
-            "shares": post.get("shares")
+            "text": post.get("text", "")
         })
 
         if len(results) >= 5:
@@ -156,7 +126,17 @@ def get_last_5_idukki_nowcasts():
 
 @app.route("/")
 def home():
-    return "Weather Alert Service Running"
+    return """
+    <h2>Weather Alert Service Running</h2>
+
+    <p>
+        <a href="/check">Latest NOWCAST JSON</a>
+    </p>
+
+    <p>
+        <a href="/last5">Last 5 Idukki NOWCASTs</a>
+    </p>
+    """
 
 
 @app.route("/check")
@@ -164,26 +144,18 @@ def check():
 
     try:
 
-        post = get_latest_idukki_nowcast()
+        posts = get_last_5_idukki_nowcasts()
 
-        if not post:
+        if not posts:
             return {
                 "status": "no_idukki_nowcast_found"
             }
 
+        latest = posts[0]
+
         return app.response_class(
             response=json.dumps(
-                {
-                    "status": "success",
-                    "contains_idukki": True,
-                    "fb_post_time": post["fb_post_time"],
-                    "issue_date": post["issue_date"],
-                    "issue_time": post["issue_time"],
-                    "url": post["url"],
-                    "likes": post["likes"],
-                    "shares": post["shares"],
-                    "text": post["text"]
-                },
+                latest,
                 ensure_ascii=False,
                 indent=2
             ),
@@ -205,24 +177,117 @@ def last5():
 
         posts = get_last_5_idukki_nowcasts()
 
-        return app.response_class(
-            response=json.dumps(
-                {
-                    "count": len(posts),
-                    "posts": posts
-                },
-                ensure_ascii=False,
-                indent=2
-            ),
-            mimetype="application/json"
-        )
+        html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Idukki NOWCAST Alerts</title>
+
+            <style>
+
+                body {
+                    font-family: Arial, sans-serif;
+                    max-width: 1200px;
+                    margin: auto;
+                    padding: 20px;
+                    background: #f5f5f5;
+                }
+
+                h1 {
+                    text-align: center;
+                    color: #333;
+                }
+
+                .card {
+                    background: white;
+                    border-radius: 12px;
+                    padding: 20px;
+                    margin-bottom: 20px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                }
+
+                .title {
+                    font-size: 22px;
+                    font-weight: bold;
+                    color: #d32f2f;
+                    margin-bottom: 15px;
+                }
+
+                .label {
+                    font-weight: bold;
+                    color: #1565c0;
+                }
+
+                .text {
+                    white-space: pre-wrap;
+                    background: #fafafa;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin-top: 15px;
+                    line-height: 1.6;
+                }
+
+            </style>
+
+        </head>
+        <body>
+
+            <h1>🌧️ Last 5 NOWCAST Posts Mentioning Idukki</h1>
+        """
+
+        for index, post in enumerate(posts, start=1):
+
+            html += f"""
+            <div class="card">
+
+                <div class="title">
+                    NOWCAST #{index}
+                </div>
+
+                <p>
+                    <span class="label">
+                        Date & Time Posted in FB:
+                    </span><br>
+                    {post["fb_post_datetime"]}
+                </p>
+
+                <p>
+                    <span class="label">
+                        Date of Issue:
+                    </span><br>
+                    {post["issue_date"]}
+                </p>
+
+                <p>
+                    <span class="label">
+                        Time of Issue:
+                    </span><br>
+                    {post["issue_time"]}
+                </p>
+
+                <p>
+                    <span class="label">
+                        Text:
+                    </span>
+                </p>
+
+                <div class="text">
+                    {post["text"]}
+                </div>
+
+            </div>
+            """
+
+        html += """
+        </body>
+        </html>
+        """
+
+        return html
 
     except Exception as e:
-
-        return {
-            "status": "error",
-            "message": str(e)
-        }
+        return f"<h2>Error</h2><pre>{str(e)}</pre>"
 
 
 if __name__ == "__main__":
