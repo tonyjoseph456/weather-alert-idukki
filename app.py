@@ -31,7 +31,7 @@ def get_latest_nowcast():
     for post in posts:
         text = post.get("text", "")
 
-        if "NOWCAST" in text.upper():
+        if "NOWCAST - " in text.upper():
             return post
 
     return None
