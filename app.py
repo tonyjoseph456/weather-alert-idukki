@@ -22,12 +22,21 @@ def get_posts(limit=100):
         f"?token={token}"
         f"&clean=true"
         f"&limit={limit}"
+        f"&desc=true"
     )
 
     response = requests.get(url)
     response.raise_for_status()
 
-    return response.json()
+    posts = response.json()
+
+    # Ensure newest Facebook posts first
+    posts.sort(
+        key=lambda x: x.get("time", ""),
+        reverse=True
+    )
+
+    return posts
 
 
 def is_nowcast(post):
@@ -169,7 +178,40 @@ def check():
             "message": str(e)
         }
 
+@app.route("/debug")
+def debug():
 
+    posts = get_posts(10)
+
+    html = """
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Latest 10 FB Posts</title>
+    </head>
+    <body>
+        <h2>Latest 10 Facebook Posts from Dataset</h2>
+        <hr>
+    """
+
+    for idx, post in enumerate(posts, start=1):
+
+        text = post.get("text", "")
+
+        html += f"""
+        <h3>Post #{idx}</h3>
+        <b>FB Time:</b> {post.get("time")}<br><br>
+
+        <pre style="white-space: pre-wrap;">
+{text[:1000]}
+        </pre>
+
+        <hr>
+        """
+
+    html += "</body></html>"
+
+    return html
 @app.route("/last5")
 def last5():
 
