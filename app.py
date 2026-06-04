@@ -8,13 +8,6 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-
-    data = request.json
-
-    print("========== NEW WEBHOOK ==========")
-    print(data)
-    print("=================================")
-
-    return jsonify({
-        "status": "received"
-    })
+    print("HEADERS:", dict(request.headers))
+    print("RAW:", request.data.decode("utf-8"))
+    return {"ok": True}
