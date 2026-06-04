@@ -178,6 +178,25 @@ def check():
             "message": str(e)
         }
 
+@app.route("/times")
+def times():
+
+    posts = get_posts(100)
+
+    html = "<h1>Latest 100 Dataset Items</h1>"
+
+    for post in posts:
+
+        html += f"""
+        <p>
+        {post.get('time')}<br>
+        {post.get('text','')[:120]}
+        </p>
+        <hr>
+        """
+
+    return html
+
 @app.route("/debug")
 def debug():
 
