@@ -11,7 +11,7 @@ app = Flask(__name__)
 # CONFIG
 # -------------------------
 
-TASK_ID = "AWmSRzWej5d5EXGLD"
+TASK_ID = "KoJrdxJCTtpon81KY"
 
 # -------------------------
 # APIFY HELPERS
