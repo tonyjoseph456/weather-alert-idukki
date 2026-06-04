@@ -8,6 +8,7 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
+
     data = request.json
 
     print("========== NEW WEBHOOK ==========")
@@ -17,6 +18,3 @@ def webhook():
     return jsonify({
         "status": "received"
     })
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
