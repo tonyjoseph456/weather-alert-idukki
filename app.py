@@ -1,28 +1,62 @@
 from flask import Flask
 import os
 import requests
-import json
 import re
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 app = Flask(__name__)
 
-# Your Apify Dataset ID
-DATASET_ID = "NYyRqc7fTqJQwsvDJ"
+# -------------------------
+# CONFIG
+# -------------------------
 
+TASK_ID = "AWmSRzWej5d5EXGLD"
 
-def get_posts(limit=100):
+# -------------------------
+# APIFY HELPERS
+# -------------------------
+
+def get_apify_token():
     token = os.getenv("APIFY_TOKEN")
 
     if not token:
-        raise Exception("APIFY_TOKEN environment variable not configured")
+        raise Exception("APIFY_TOKEN not configured")
+
+    return token
+
+
+def get_latest_dataset_id():
+
+    token = get_apify_token()
+
+    url = (
+        f"https://api.apify.com/v2/actor-tasks/"
+        f"{TASK_ID}/runs/last"
+        f"?token={token}"
+    )
+
+    response = requests.get(url)
+    response.raise_for_status()
+
+    data = response.json()
+
+    return data["data"]["defaultDatasetId"]
+
+
+def get_posts(limit=100):
+
+    token = get_apify_token()
+
+    dataset_id = get_latest_dataset_id()
 
     url = (
         f"https://api.apify.com/v2/datasets/"
-        f"{DATASET_ID}/items"
+        f"{dataset_id}/items"
         f"?token={token}"
         f"&clean=true"
-        f"&limit={limit}"
         f"&desc=true"
+        f"&limit={limit}"
     )
 
     response = requests.get(url)
@@ -30,7 +64,6 @@ def get_posts(limit=100):
 
     posts = response.json()
 
-    # Ensure newest Facebook posts first
     posts.sort(
         key=lambda x: x.get("time", ""),
         reverse=True
@@ -39,12 +72,19 @@ def get_posts(limit=100):
     return posts
 
 
+# -------------------------
+# NOWCAST HELPERS
+# -------------------------
+
 def is_nowcast(post):
+
     text = post.get("text", "")
+
     return "NOWCAST" in text.upper()
 
 
 def contains_idukki(post):
+
     text = post.get("text", "").lower()
 
     return (
@@ -53,12 +93,31 @@ def contains_idukki(post):
     )
 
 
+def convert_fb_time_to_ist(fb_time):
+
+    try:
+
+        dt = datetime.fromisoformat(
+            fb_time.replace("Z", "+00:00")
+        )
+
+        ist = dt.astimezone(
+            ZoneInfo("Asia/Kolkata")
+        )
+
+        return ist.strftime(
+            "%d/%m/%Y %I:%M:%S %p IST"
+        )
+
+    except:
+        return fb_time
+
+
 def extract_issue_datetime(text):
 
     issue_date = "Unknown"
     issue_time = "Unknown"
 
-    # English section
     date_match = re.search(
         r"NOWCAST dated\s+(\d{2}/\d{2}/\d{4})",
         text,
@@ -75,29 +134,13 @@ def extract_issue_datetime(text):
     )
 
     if time_match:
-        issue_time = time_match.group(1)
 
-    # Malayalam fallback
-    if issue_date == "Unknown":
+        raw = time_match.group(1).zfill(4)
 
-        mal_date = re.search(
-            r"പുറപ്പെടുവിച്ച സമയവും തീയതിയും.*?(\d{2}/\d{2}/\d{4})",
-            text
-        )
+        hour = raw[:2]
+        minute = raw[2:]
 
-        if mal_date:
-            issue_date = mal_date.group(1)
-
-    if issue_time == "Unknown":
-
-        mal_time = re.search(
-            r"പുറപ്പെടുവിച്ച സമയവും തീയതിയും\s*([0-9.: ]+(?:AM|PM))",
-            text,
-            re.IGNORECASE
-        )
-
-        if mal_time:
-            issue_time = mal_time.group(1)
+        issue_time = f"{hour}:{minute}"
 
     return issue_date, issue_time
 
@@ -121,10 +164,23 @@ def get_last_5_idukki_nowcasts():
         )
 
         results.append({
-            "fb_post_datetime": post.get("time"),
-            "issue_date": issue_date,
-            "issue_time": issue_time,
-            "text": post.get("text", "")
+
+            "fb_post_datetime":
+                convert_fb_time_to_ist(
+                    post.get("time")
+                ),
+
+            "issue_date":
+                issue_date,
+
+            "issue_time":
+                issue_time,
+
+            "url":
+                post.get("url"),
+
+            "text":
+                post.get("text", "")
         })
 
         if len(results) >= 5:
@@ -133,224 +189,204 @@ def get_last_5_idukki_nowcasts():
     return results
 
 
+# -------------------------
+# ROUTES
+# -------------------------
+
 @app.route("/")
 def home():
+
     return """
     <h2>Weather Alert Service Running</h2>
 
     <p>
-        <a href="/check">Latest NOWCAST JSON</a>
+        <a href="/last5">
+            Last 5 NOWCAST Posts
+        </a>
     </p>
 
     <p>
-        <a href="/last5">Last 5 Idukki NOWCASTs</a>
+        <a href="/debug">
+            Debug Posts
+        </a>
+    </p>
+
+    <p>
+        <a href="/dataset">
+            Current Dataset
+        </a>
     </p>
     """
 
 
-@app.route("/check")
-def check():
+@app.route("/dataset")
+def dataset():
 
-    try:
+    return {
+        "dataset_id": get_latest_dataset_id()
+    }
 
-        posts = get_last_5_idukki_nowcasts()
-
-        if not posts:
-            return {
-                "status": "no_idukki_nowcast_found"
-            }
-
-        latest = posts[0]
-
-        return app.response_class(
-            response=json.dumps(
-                latest,
-                ensure_ascii=False,
-                indent=2
-            ),
-            mimetype="application/json"
-        )
-
-    except Exception as e:
-
-        return {
-            "status": "error",
-            "message": str(e)
-        }
-
-@app.route("/times")
-def times():
-
-    posts = get_posts(100)
-
-    html = "<h1>Latest 100 Dataset Items</h1>"
-
-    for post in posts:
-
-        html += f"""
-        <p>
-        {post.get('time')}<br>
-        {post.get('text','')[:120]}
-        </p>
-        <hr>
-        """
-
-    return html
 
 @app.route("/debug")
 def debug():
 
-    posts = get_posts(10)
+    posts = get_posts(20)
 
     html = """
     <html>
-    <head>
-        <meta charset="utf-8">
-        <title>Latest 10 FB Posts</title>
-    </head>
     <body>
-        <h2>Latest 10 Facebook Posts from Dataset</h2>
-        <hr>
+    <h2>Latest Dataset Posts</h2>
     """
 
-    for idx, post in enumerate(posts, start=1):
-
-        text = post.get("text", "")
+    for post in posts:
 
         html += f"""
-        <h3>Post #{idx}</h3>
-        <b>FB Time:</b> {post.get("time")}<br><br>
-
-        <pre style="white-space: pre-wrap;">
-{text[:1000]}
-        </pre>
-
         <hr>
+
+        <b>FB Time:</b>
+        {post.get("time")}
+        <br><br>
+
+        <pre>
+{post.get("text","")[:1200]}
+        </pre>
         """
 
     html += "</body></html>"
 
     return html
+
+
 @app.route("/last5")
 def last5():
 
-    try:
+    posts = get_last_5_idukki_nowcasts()
 
-        posts = get_last_5_idukki_nowcasts()
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
 
-        html = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <title>Idukki NOWCAST Alerts</title>
+    <meta charset="utf-8">
 
-            <style>
+    <title>
+    Last 5 Idukki NOWCASTs
+    </title>
 
-                body {
-                    font-family: Arial, sans-serif;
-                    max-width: 1200px;
-                    margin: auto;
-                    padding: 20px;
-                    background: #f5f5f5;
-                }
+    <style>
 
-                h1 {
-                    text-align: center;
-                    color: #333;
-                }
+    body{
+        font-family:Arial;
+        background:#f5f5f5;
+        max-width:1200px;
+        margin:auto;
+        padding:20px;
+    }
 
-                .card {
-                    background: white;
-                    border-radius: 12px;
-                    padding: 20px;
-                    margin-bottom: 20px;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                }
+    .card{
+        background:white;
+        padding:20px;
+        margin-bottom:20px;
+        border-radius:10px;
+        box-shadow:0 2px 10px rgba(0,0,0,0.1);
+    }
 
-                .title {
-                    font-size: 22px;
-                    font-weight: bold;
-                    color: #d32f2f;
-                    margin-bottom: 15px;
-                }
+    h1{
+        color:#1565c0;
+    }
 
-                .label {
-                    font-weight: bold;
-                    color: #1565c0;
-                }
+    pre{
+        white-space:pre-wrap;
+    }
 
-                .text {
-                    white-space: pre-wrap;
-                    background: #fafafa;
-                    padding: 15px;
-                    border-radius: 8px;
-                    margin-top: 15px;
-                    line-height: 1.6;
-                }
+    </style>
 
-            </style>
+    </head>
+    <body>
 
-        </head>
-        <body>
+    <h1>
+    Last 5 NOWCAST Posts mentioning Idukki
+    </h1>
+    """
 
-            <h1>🌧️ Last 5 NOWCAST Posts Mentioning Idukki</h1>
+    for i, post in enumerate(posts, start=1):
+
+        html += f"""
+
+        <div class="card">
+
+        <h2>NOWCAST #{i}</h2>
+
+        <p>
+
+        <b>Date & Time Posted in FB:</b>
+
+        <br>
+
+        {post["fb_post_datetime"]}
+
+        </p>
+
+        <p>
+
+        <b>Date of Issue:</b>
+
+        <br>
+
+        {post["issue_date"]}
+
+        </p>
+
+        <p>
+
+        <b>Time of Issue:</b>
+
+        <br>
+
+        {post["issue_time"]}
+
+        </p>
+
+        <p>
+
+        <b>Facebook Post URL:</b>
+
+        <br>
+
+        <a href="{post["url"]}" target="_blank">
+            Open Post
+        </a>
+
+        </p>
+
+        <p>
+
+        <b>Text (Idukki present):</b>
+
+        </p>
+
+        <pre>
+{post["text"]}
+        </pre>
+
+        </div>
         """
 
-        for index, post in enumerate(posts, start=1):
+    html += """
+    </body>
+    </html>
+    """
 
-            html += f"""
-            <div class="card">
-
-                <div class="title">
-                    NOWCAST #{index}
-                </div>
-
-                <p>
-                    <span class="label">
-                        Date & Time Posted in FB:
-                    </span><br>
-                    {post["fb_post_datetime"]}
-                </p>
-
-                <p>
-                    <span class="label">
-                        Date of Issue:
-                    </span><br>
-                    {post["issue_date"]}
-                </p>
-
-                <p>
-                    <span class="label">
-                        Time of Issue:
-                    </span><br>
-                    {post["issue_time"]}
-                </p>
-
-                <p>
-                    <span class="label">
-                        Text:
-                    </span>
-                </p>
-
-                <div class="text">
-                    {post["text"]}
-                </div>
-
-            </div>
-            """
-
-        html += """
-        </body>
-        </html>
-        """
-
-        return html
-
-    except Exception as e:
-        return f"<h2>Error</h2><pre>{str(e)}</pre>"
+    return html
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+
+    port = int(
+        os.environ.get("PORT", 8080)
+    )
+
+    app.run(
+        host="0.0.0.0",
+        port=port
+    )
