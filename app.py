@@ -1,13 +1,33 @@
-from flask import Flask, request, jsonify
+from flask import Flask
+import requests
+import os
 
 app = Flask(__name__)
+
+DATASET_ID = "NVyRc7fTqJ0wsvDJ"
 
 @app.route("/")
 def home():
     return "Railway Weather Alert Service Running"
 
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    print("HEADERS:", dict(request.headers))
-    print("RAW:", request.data.decode("utf-8"))
-    return {"ok": True}
+@app.route("/check")
+def check():
+
+    token = os.getenv("APIFY_TOKEN")
+
+    url = (
+        f"https://api.apify.com/v2/datasets/"
+        f"{DATASET_ID}/items"
+        f"?token={token}"
+        f"&clean=true"
+        f"&limit=1"
+    )
+
+    response = requests.get(url)
+
+    print(response.text)
+
+    return response.text
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
