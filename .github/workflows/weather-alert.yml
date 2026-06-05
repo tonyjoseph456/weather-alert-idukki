@@ -1,5 +1,5 @@
 name: Weather Alert V2
-
+# scheduler test
 on:
   schedule:
     - cron: "*/5 * * * *"
@@ -24,5 +24,7 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+
+          
 
     
