@@ -16,7 +16,7 @@ COLOR_MAP = {
 
 def fetch_imd_data():
 
-```
+
 response = requests.get(
     IMD_URL,
     headers={"User-Agent": "Mozilla/5.0"},
@@ -49,11 +49,11 @@ for match in pattern.finditer(html):
     })
 
 return districts
-```
+
 
 def extract_issue_time(info):
 
-```
+
 match = re.search(
     r"Time of issue:\s*(\d{4}-\d{2}-\d{2}).*?(\d{4})\s*Hrs",
     info,
@@ -64,11 +64,11 @@ if not match:
     return "Unknown"
 
 return f"{match.group(1)} {match.group(2)} Hrs"
-```
+
 
 def extract_valid_upto(info):
 
-```
+
 match = re.search(
     r"Valid upto:\s*(\d{4})\s*Hrs",
     info,
@@ -79,12 +79,12 @@ if not match:
     return "Unknown"
 
 return f"{match.group(1)} Hrs"
-```
+
 
 @app.route("/")
 def dashboard():
 
-```
+
 kerala_districts = [
     "THIRUVANANTHAPURAM",
     "KOLLAM",
@@ -125,7 +125,7 @@ for d in all_districts:
         })
 
 return render_template_string("""
-```
+
 
 <!DOCTYPE html>
 
