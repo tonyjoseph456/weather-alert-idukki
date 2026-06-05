@@ -127,6 +127,17 @@ def save_last_alert(alert):
             f
         )
 
+@app.route("/test-alert")
+def test_alert():
+
+    send_telegram(
+        "🔔 TEST ALERT\n\nTelegram notification test from Railway."
+    )
+
+    return {
+        "status": "test_sent"
+    }
+    
 @app.route("/check-alert")
 def check_alert():
 
