@@ -1,392 +1,156 @@
-from flask import Flask
-import os
+from flask import Flask, jsonify
 import requests
 import re
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from html import unescape
 
 app = Flask(__name__)
 
-# -------------------------
-# CONFIG
-# -------------------------
+IMD_URL = "https://mausam.imd.gov.in/imd_latest/contents/districtwisewarnings_mc.php?id=4"
 
-TASK_ID = "KoJrdxJCTtpon81KY"
-
-# -------------------------
-# APIFY HELPERS
-# -------------------------
-
-def get_apify_token():
-    token = os.getenv("APIFY_TOKEN")
-
-    if not token:
-        raise Exception("APIFY_TOKEN not configured")
-
-    return token
+COLOR_MAP = {
+    "#008000": "GREEN",
+    "#ffff00": "YELLOW",
+    "#ffa500": "ORANGE",
+    "#ff0000": "RED"
+}
 
 
-def get_latest_dataset_id():
+def fetch_imd_data():
 
-    token = get_apify_token()
+    html = requests.get(
+        IMD_URL,
+        headers={
+            "User-Agent": "Mozilla/5.0"
+        },
+        timeout=30
+    ).text
 
-    url = (
-        f"https://api.apify.com/v2/actor-tasks/"
-        f"{TASK_ID}/runs/last"
-        f"?token={token}"
+    pattern = re.compile(
+        r'"title":\s*"([^"]+)".*?'
+        r'"id":\s*"([^"]+)".*?'
+        r'"color":\s*"([^"]+)".*?'
+        r'"info":\s*"([^"]+)"',
+        re.DOTALL
     )
 
-    response = requests.get(url)
-    response.raise_for_status()
+    districts = []
 
-    data = response.json()
+    for match in pattern.finditer(html):
 
-    return data["data"]["defaultDatasetId"]
+        district = match.group(1)
+        color = match.group(3).lower()
+        info = unescape(match.group(4))
 
-
-def get_posts(limit=100):
-
-    token = get_apify_token()
-
-    dataset_id = get_latest_dataset_id()
-
-    url = (
-        f"https://api.apify.com/v2/datasets/"
-        f"{dataset_id}/items"
-        f"?token={token}"
-        f"&clean=true"
-        f"&desc=true"
-        f"&limit={limit}"
-    )
-
-    response = requests.get(url)
-    response.raise_for_status()
-
-    posts = response.json()
-
-    posts.sort(
-        key=lambda x: x.get("time", ""),
-        reverse=True
-    )
-
-    return posts
-
-
-# -------------------------
-# NOWCAST HELPERS
-# -------------------------
-
-def is_nowcast(post):
-
-    text = post.get("text", "")
-
-    return "NOWCAST" in text.upper()
-
-
-def contains_idukki(post):
-
-    text = post.get("text", "").lower()
-
-    return (
-        "idukki" in text or
-        "ഇടുക്കി" in text
-    )
-
-
-def convert_fb_time_to_ist(fb_time):
-
-    try:
-
-        dt = datetime.fromisoformat(
-            fb_time.replace("Z", "+00:00")
-        )
-
-        ist = dt.astimezone(
-            ZoneInfo("Asia/Kolkata")
-        )
-
-        return ist.strftime(
-            "%d/%m/%Y %I:%M:%S %p IST"
-        )
-
-    except:
-        return fb_time
-
-
-def extract_issue_datetime(text):
-
-    issue_date = "Unknown"
-    issue_time = "Unknown"
-
-    date_match = re.search(
-        r"NOWCAST dated\s+(\d{2}/\d{2}/\d{4})",
-        text,
-        re.IGNORECASE
-    )
-
-    if date_match:
-        issue_date = date_match.group(1)
-
-    time_match = re.search(
-        r"Time of issue\s+([0-9]{3,4})\s*hr",
-        text,
-        re.IGNORECASE
-    )
-
-    if time_match:
-
-        raw = time_match.group(1).zfill(4)
-
-        hour = raw[:2]
-        minute = raw[2:]
-
-        issue_time = f"{hour}:{minute}"
-
-    return issue_date, issue_time
-
-
-def get_last_5_idukki_nowcasts():
-
-    posts = get_posts(100)
-
-    results = []
-
-    for post in posts:
-
-        if not is_nowcast(post):
-            continue
-
-        if not contains_idukki(post):
-            continue
-
-        issue_date, issue_time = extract_issue_datetime(
-            post.get("text", "")
-        )
-
-        results.append({
-
-            "fb_post_datetime":
-                convert_fb_time_to_ist(
-                    post.get("time")
-                ),
-
-            "issue_date":
-                issue_date,
-
-            "issue_time":
-                issue_time,
-
-            "url":
-                post.get("url"),
-
-            "text":
-                post.get("text", "")
+        districts.append({
+            "district": district,
+            "warning_level": COLOR_MAP.get(color, color),
+            "color": color,
+            "info": info
         })
 
-        if len(results) >= 5:
-            break
-
-    return results
+    return districts
 
 
-# -------------------------
-# ROUTES
-# -------------------------
+def extract_issue_time(info):
+
+    m = re.search(
+        r"Time of issue:\s*(\d{4}-\d{2}-\d{2}).*?(\d{4})\s*Hrs",
+        info,
+        re.DOTALL
+    )
+
+    if not m:
+        return None
+
+    return f"{m.group(1)} {m.group(2)} Hrs"
+
+
+def extract_valid_upto(info):
+
+    m = re.search(
+        r"Valid upto:\s*(\d{4})\s*Hrs",
+        info,
+        re.IGNORECASE
+    )
+
+    if not m:
+        return None
+
+    return f"{m.group(1)} Hrs"
+
 
 @app.route("/")
 def home():
 
     return """
-    <h2>Weather Alert Service Running</h2>
+    <h2>IMD Kerala Nowcast Service Running</h2>
 
-    <p>
-        <a href="/last5">
-            Last 5 NOWCAST Posts
-        </a>
-    </p>
-
-    <p>
-        <a href="/debug">
-            Debug Posts
-        </a>
-    </p>
-
-    <p>
-        <a href="/dataset">
-            Current Dataset
-        </a>
-    </p>
+    <ul>
+        <li><a href='/idukki'>/idukki</a></li>
+        <li><a href='/kerala'>/kerala</a></li>
+    </ul>
     """
 
 
-@app.route("/dataset")
-def dataset():
+@app.route("/idukki")
+def idukki():
 
-    return {
-        "dataset_id": get_latest_dataset_id()
-    }
+    districts = fetch_imd_data()
 
+    for d in districts:
 
-@app.route("/debug")
-def debug():
+        if d["district"] == "IDUKKI":
 
-    posts = get_posts(20)
+            return jsonify({
+                "district": d["district"],
+                "warning_level": d["warning_level"],
+                "issue_time": extract_issue_time(d["info"]),
+                "valid_upto": extract_valid_upto(d["info"]),
+                "message": re.sub("<.*?>", "", d["info"])
+            })
 
-    html = """
-    <html>
-    <body>
-    <h2>Latest Dataset Posts</h2>
-    """
-
-    for post in posts:
-
-        html += f"""
-        <hr>
-
-        <b>FB Time:</b>
-        {post.get("time")}
-        <br><br>
-
-        <pre>
-{post.get("text","")[:1200]}
-        </pre>
-        """
-
-    html += "</body></html>"
-
-    return html
+    return jsonify({
+        "error": "IDUKKI not found"
+    })
 
 
-@app.route("/last5")
-def last5():
+@app.route("/kerala")
+def kerala():
 
-    posts = get_last_5_idukki_nowcasts()
+    districts = fetch_imd_data()
 
-    html = """
-    <!DOCTYPE html>
-    <html>
-    <head>
+    kerala = [
+        "THIRUVANANTHAPURAM",
+        "KOLLAM",
+        "PATHANAMTHITTA",
+        "ALAPPUZHA",
+        "KOTTAYAM",
+        "IDUKKI",
+        "ERNAKULAM",
+        "THRISSUR",
+        "PALAKKAD",
+        "MALAPPURAM",
+        "KOZHIKODE",
+        "WAYANAD",
+        "KANNUR",
+        "KASARAGOD"
+    ]
 
-    <meta charset="utf-8">
+    result = []
 
-    <title>
-    Last 5 Idukki NOWCASTs
-    </title>
+    for d in districts:
 
-    <style>
+        if d["district"] in kerala:
 
-    body{
-        font-family:Arial;
-        background:#f5f5f5;
-        max-width:1200px;
-        margin:auto;
-        padding:20px;
-    }
+            result.append({
+                "district": d["district"],
+                "warning_level": d["warning_level"],
+                "issue_time": extract_issue_time(d["info"]),
+                "valid_upto": extract_valid_upto(d["info"])
+            })
 
-    .card{
-        background:white;
-        padding:20px;
-        margin-bottom:20px;
-        border-radius:10px;
-        box-shadow:0 2px 10px rgba(0,0,0,0.1);
-    }
-
-    h1{
-        color:#1565c0;
-    }
-
-    pre{
-        white-space:pre-wrap;
-    }
-
-    </style>
-
-    </head>
-    <body>
-
-    <h1>
-    Last 5 NOWCAST Posts mentioning Idukki
-    </h1>
-    """
-
-    for i, post in enumerate(posts, start=1):
-
-        html += f"""
-
-        <div class="card">
-
-        <h2>NOWCAST #{i}</h2>
-
-        <p>
-
-        <b>Date & Time Posted in FB:</b>
-
-        <br>
-
-        {post["fb_post_datetime"]}
-
-        </p>
-
-        <p>
-
-        <b>Date of Issue:</b>
-
-        <br>
-
-        {post["issue_date"]}
-
-        </p>
-
-        <p>
-
-        <b>Time of Issue:</b>
-
-        <br>
-
-        {post["issue_time"]}
-
-        </p>
-
-        <p>
-
-        <b>Facebook Post URL:</b>
-
-        <br>
-
-        <a href="{post["url"]}" target="_blank">
-            Open Post
-        </a>
-
-        </p>
-
-        <p>
-
-        <b>Text (Idukki present):</b>
-
-        </p>
-
-        <pre>
-{post["text"]}
-        </pre>
-
-        </div>
-        """
-
-    html += """
-    </body>
-    </html>
-    """
-
-    return html
+    return jsonify(result)
 
 
 if __name__ == "__main__":
-
-    port = int(
-        os.environ.get("PORT", 8080)
-    )
-
-    app.run(
-        host="0.0.0.0",
-        port=port
-    )
+    app.run(host="0.0.0.0", port=8080)
