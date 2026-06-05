@@ -273,7 +273,15 @@ select{width:100%;padding:12px}
 .orange{background:#fb8c00;color:#fff}.red{background:#d32f2f;color:#fff}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
 .small{background:#fff;padding:15px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.message{white-space:pre-wrap;line-height:1.7}
+.message{
+    white-space:pre-wrap;
+    line-height:1.8;
+    margin-top:15px;
+    padding:15px;
+    background:#f8fafc;
+    border-left:4px solid #1565c0;
+    border-radius:8px;
+}
 @media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style></head><body>
 <div class="header"><h1>🌧 Kerala Nowcast Dashboard</h1></div>
