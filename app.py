@@ -4,6 +4,7 @@ from html import unescape
 import requests
 import re
 import os
+import json
 
 app = Flask(__name__)
 
@@ -15,6 +16,12 @@ COLOR_MAP = {
     "#ffa500": "ORANGE",
     "#ff0000": "RED"
 }
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
+
+STATE_FILE = "last_alert.json"
+
 
 def clean_warning_text(info):
     text = unescape(info)
@@ -68,6 +75,124 @@ def fetch_imd_data():
             "info": info
         })
     return districts
+    
+def send_telegram(message):
+
+    if not BOT_TOKEN or not CHAT_ID:
+        return False
+
+    try:
+
+        requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            json={
+                "chat_id": CHAT_ID,
+                "text": message
+            },
+            timeout=30
+        )
+
+        return True
+
+    except Exception as e:
+
+        print(e)
+
+        return False
+
+
+def load_last_alert():
+
+    try:
+
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+
+            return json.load(f)
+
+    except:
+
+        return {
+            "last_alert": ""
+        }
+
+
+def save_last_alert(alert):
+
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+
+        json.dump(
+            {
+                "last_alert": alert
+            },
+            f
+        )
+
+@app.route("/check-alert")
+def check_alert():
+
+    for d in fetch_imd_data():
+
+        if d["district"] != "IDUKKI":
+            continue
+
+        message = clean_warning_text(d["info"])
+
+        text = message.lower()
+
+        keywords = [
+            "thunderstorm",
+            "thunderstorms",
+            "lightning",
+            "heavy rain",
+            "very heavy rain"
+        ]
+
+        found = any(
+            keyword in text
+            for keyword in keywords
+        )
+
+        if not found:
+
+            return {
+                "status": "no_alert"
+            }
+
+        state = load_last_alert()
+
+        if state["last_alert"] == message:
+
+            return {
+                "status": "already_sent"
+            }
+
+        ist_now = (
+            datetime.utcnow()
+            + timedelta(hours=5, minutes=30)
+        )
+
+        telegram_message = (
+            "⚠️ IDUKKI WEATHER ALERT ⚠️\n\n"
+            f"{message}\n\n"
+            f"Checked: "
+            f"{ist_now.strftime('%d %b %Y, %I:%M %p IST')}"
+        )
+
+        send_telegram(
+            telegram_message
+        )
+
+        save_last_alert(
+            message
+        )
+
+        return {
+            "status": "alert_sent"
+        }
+
+    return {
+        "status": "district_not_found"
+    }
 
 @app.route("/")
 def dashboard():
