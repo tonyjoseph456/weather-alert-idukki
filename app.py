@@ -3,7 +3,7 @@ import requests
 import re
 from html import unescape
 
-app = Flask(**name**)
+app = Flask(__name__)
 
 IMD_URL = "https://mausam.imd.gov.in/imd_latest/contents/districtwisewarnings_mc.php?id=4"
 
