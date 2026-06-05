@@ -112,20 +112,46 @@ def load_last_alert():
     except:
 
         return {
-            "last_alert": ""
+            "last_alert": "",
+            "last_check": ""
         }
 
 
 def save_last_alert(alert):
 
+    ist_now = (
+        datetime.utcnow()
+        + timedelta(hours=5, minutes=30)
+    )
+
     with open(STATE_FILE, "w", encoding="utf-8") as f:
 
         json.dump(
             {
-                "last_alert": alert
+                "last_alert": alert,
+                "last_check": ist_now.strftime(
+                    "%d %b %Y, %I:%M:%S %p IST"
+                )
             },
             f
         )
+        
+def save_check_time():
+
+    state = load_last_alert()
+
+    ist_now = (
+        datetime.utcnow()
+        + timedelta(hours=5, minutes=30)
+    )
+
+    state["last_check"] = ist_now.strftime(
+        "%d %b %Y, %I:%M:%S %p IST"
+    )
+
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+
+        json.dump(state, f)
 
 @app.route("/test-alert")
 def test_alert():
@@ -141,6 +167,7 @@ def test_alert():
 @app.route("/check-alert")
 def check_alert():
 
+    save_check_time()
     for d in fetch_imd_data():
 
         if d["district"] != "IDUKKI":
@@ -211,6 +238,12 @@ def dashboard():
     kerala = ["THIRUVANANTHAPURAM","KOLLAM","PATHANAMTHITTA","ALAPPUZHA","KOTTAYAM","IDUKKI",
               "ERNAKULAM","THRISSUR","PALAKKAD","MALAPPURAM","KOZHIKODE","WAYANAD","KANNUR","KASARAGOD"]
 
+    state = load_last_alert()
+
+    last_check = state.get(
+        "last_check",
+        "Never"
+    )
     districts = []
     for d in fetch_imd_data():
         if d["district"] in kerala:
@@ -245,7 +278,15 @@ select{width:100%;padding:12px}
 </style></head><body>
 <div class="header"><h1>🌧 Kerala Nowcast Dashboard</h1></div>
 <div class="container">
-<p style="text-align:center">Last Refreshed: {{last_refreshed}}</p>
+<p style="text-align:center;color:#666;">
+    Dashboard Loaded:
+    {{ last_refreshed }}
+</p>
+
+<p style="text-align:center;color:#1565c0;font-weight:bold;">
+    Last IMD Alert Check:
+    {{ last_check }}
+</p>
 <div class="card"><select id="district"></select></div>
 <div id="content"></div>
 </div>
@@ -274,7 +315,7 @@ sel.onchange=()=>render(sel.value);
 render('IDUKKI');
 setTimeout(()=>location.reload(),300000);
 </script></body></html>
-""", districts=districts, last_refreshed=last_refreshed)
+""", districts=districts, last_refreshed=last_refreshed,last_check=last_check)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
