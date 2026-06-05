@@ -1,5 +1,5 @@
-name: Weather Alert
-
+name: Weather Alert V2
+# scheduler test
 on:
   schedule:
     - cron: "*/5 * * * *"
@@ -25,13 +25,6 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
 
-      - name: Commit state file
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
+          
 
-          git add last_alert.json
-
-          git commit -m "Update state" || exit 0
-
-          git push
+    
