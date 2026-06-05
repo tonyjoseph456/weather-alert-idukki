@@ -1,4 +1,4 @@
-name: Weather Alert
+name: Weather Alert V2
 
 on:
   schedule:
