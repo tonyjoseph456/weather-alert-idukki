@@ -1,5 +1,5 @@
 from flask import Flask, render_template_string
-from datetime import datetime
+from datetime import datetime, timedelta
 from html import unescape
 import requests
 import re
@@ -164,8 +164,10 @@ def dashboard():
                 "message": clean_warning_text(d["info"])
             })
 
-    last_refreshed = datetime.now().strftime(
-        "%d %b %Y, %I:%M:%S %p"
+    ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+
+    last_refreshed = ist_now.strftime(
+        "%d %b %Y, %I:%M:%S %p IST"
     )
 
     return render_template_string(
