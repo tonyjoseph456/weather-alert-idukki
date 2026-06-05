@@ -271,7 +271,12 @@ select{width:100%;padding:12px}
 .badge{font-size:34px;font-weight:bold;text-align:center;padding:20px;border-radius:12px}
 .green{background:#2e7d32;color:#fff}.yellow{background:#ffeb3b;color:#000}
 .orange{background:#fb8c00;color:#fff}.red{background:#d32f2f;color:#fff}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:15px;
+    margin-bottom:25px;
+}
 .small{background:#fff;padding:15px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .message{
     white-space:pre-wrap;
