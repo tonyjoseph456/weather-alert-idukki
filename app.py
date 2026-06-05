@@ -1,156 +1,324 @@
-from flask import Flask, jsonify
+from flask import Flask, render_template_string
 import requests
 import re
 from html import unescape
 
-app = Flask(__name__)
+app = Flask(**name**)
 
 IMD_URL = "https://mausam.imd.gov.in/imd_latest/contents/districtwisewarnings_mc.php?id=4"
 
 COLOR_MAP = {
-    "#008000": "GREEN",
-    "#ffff00": "YELLOW",
-    "#ffa500": "ORANGE",
-    "#ff0000": "RED"
+"#008000": "GREEN",
+"#ffff00": "YELLOW",
+"#ffa500": "ORANGE",
+"#ff0000": "RED"
 }
-
 
 def fetch_imd_data():
 
-    html = requests.get(
-        IMD_URL,
-        headers={
-            "User-Agent": "Mozilla/5.0"
-        },
-        timeout=30
-    ).text
+```
+response = requests.get(
+    IMD_URL,
+    headers={"User-Agent": "Mozilla/5.0"},
+    timeout=30
+)
 
-    pattern = re.compile(
-        r'"title":\s*"([^"]+)".*?'
-        r'"id":\s*"([^"]+)".*?'
-        r'"color":\s*"([^"]+)".*?'
-        r'"info":\s*"([^"]+)"',
-        re.DOTALL
-    )
+html = response.text
 
-    districts = []
+pattern = re.compile(
+    r'"title":\s*"([^"]+)".*?'
+    r'"id":\s*"([^"]+)".*?'
+    r'"color":\s*"([^"]+)".*?'
+    r'"info":\s*"([^"]+)"',
+    re.DOTALL
+)
 
-    for match in pattern.finditer(html):
+districts = []
 
-        district = match.group(1)
-        color = match.group(3).lower()
-        info = unescape(match.group(4))
+for match in pattern.finditer(html):
 
-        districts.append({
-            "district": district,
-            "warning_level": COLOR_MAP.get(color, color),
-            "color": color,
-            "info": info
-        })
+    district = match.group(1)
+    color = match.group(3).lower()
+    info = unescape(match.group(4))
 
-    return districts
+    districts.append({
+        "district": district,
+        "warning_level": COLOR_MAP.get(color, color),
+        "color": color,
+        "info": info
+    })
 
+return districts
+```
 
 def extract_issue_time(info):
 
-    m = re.search(
-        r"Time of issue:\s*(\d{4}-\d{2}-\d{2}).*?(\d{4})\s*Hrs",
-        info,
-        re.DOTALL
-    )
+```
+match = re.search(
+    r"Time of issue:\s*(\d{4}-\d{2}-\d{2}).*?(\d{4})\s*Hrs",
+    info,
+    re.DOTALL
+)
 
-    if not m:
-        return None
+if not match:
+    return "Unknown"
 
-    return f"{m.group(1)} {m.group(2)} Hrs"
-
+return f"{match.group(1)} {match.group(2)} Hrs"
+```
 
 def extract_valid_upto(info):
 
-    m = re.search(
-        r"Valid upto:\s*(\d{4})\s*Hrs",
-        info,
-        re.IGNORECASE
-    )
+```
+match = re.search(
+    r"Valid upto:\s*(\d{4})\s*Hrs",
+    info,
+    re.IGNORECASE
+)
 
-    if not m:
-        return None
+if not match:
+    return "Unknown"
 
-    return f"{m.group(1)} Hrs"
-
+return f"{match.group(1)} Hrs"
+```
 
 @app.route("/")
-def home():
+def dashboard():
 
-    return """
-    <h2>IMD Kerala Nowcast Service Running</h2>
+```
+kerala_districts = [
+    "THIRUVANANTHAPURAM",
+    "KOLLAM",
+    "PATHANAMTHITTA",
+    "ALAPPUZHA",
+    "KOTTAYAM",
+    "IDUKKI",
+    "ERNAKULAM",
+    "THRISSUR",
+    "PALAKKAD",
+    "MALAPPURAM",
+    "KOZHIKODE",
+    "WAYANAD",
+    "KANNUR",
+    "KASARAGOD"
+]
 
-    <ul>
-        <li><a href='/idukki'>/idukki</a></li>
-        <li><a href='/kerala'>/kerala</a></li>
-    </ul>
-    """
+all_districts = fetch_imd_data()
 
+districts = []
 
-@app.route("/idukki")
-def idukki():
+for d in all_districts:
 
-    districts = fetch_imd_data()
+    if d["district"] in kerala_districts:
 
-    for d in districts:
+        clean_message = re.sub(
+            r"<.*?>",
+            "",
+            d["info"]
+        )
 
-        if d["district"] == "IDUKKI":
+        districts.append({
+            "district": d["district"],
+            "warning_level": d["warning_level"],
+            "issue_time": extract_issue_time(d["info"]),
+            "valid_upto": extract_valid_upto(d["info"]),
+            "message": clean_message
+        })
 
-            return jsonify({
-                "district": d["district"],
-                "warning_level": d["warning_level"],
-                "issue_time": extract_issue_time(d["info"]),
-                "valid_upto": extract_valid_upto(d["info"]),
-                "message": re.sub("<.*?>", "", d["info"])
-            })
+return render_template_string("""
+```
 
-    return jsonify({
-        "error": "IDUKKI not found"
-    })
+<!DOCTYPE html>
 
+<html>
+<head>
 
-@app.route("/kerala")
-def kerala():
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-    districts = fetch_imd_data()
+<title>Kerala Nowcast Dashboard</title>
 
-    kerala = [
-        "THIRUVANANTHAPURAM",
-        "KOLLAM",
-        "PATHANAMTHITTA",
-        "ALAPPUZHA",
-        "KOTTAYAM",
-        "IDUKKI",
-        "ERNAKULAM",
-        "THRISSUR",
-        "PALAKKAD",
-        "MALAPPURAM",
-        "KOZHIKODE",
-        "WAYANAD",
-        "KANNUR",
-        "KASARAGOD"
-    ]
+<style>
 
-    result = []
+body{
+    margin:0;
+    padding:20px;
+    font-family:Arial,sans-serif;
+    background:#eef3f8;
+}
 
-    for d in districts:
+.container{
+    max-width:850px;
+    margin:auto;
+}
 
-        if d["district"] in kerala:
+.header{
+    text-align:center;
+    margin-bottom:20px;
+}
 
-            result.append({
-                "district": d["district"],
-                "warning_level": d["warning_level"],
-                "issue_time": extract_issue_time(d["info"]),
-                "valid_upto": extract_valid_upto(d["info"])
-            })
+.header h1{
+    color:#1565c0;
+    margin-bottom:5px;
+}
 
-    return jsonify(result)
+.card{
+    background:white;
+    border-radius:18px;
+    padding:25px;
+    box-shadow:0 5px 25px rgba(0,0,0,0.12);
+}
 
+select{
+    width:100%;
+    padding:14px;
+    font-size:18px;
+    border-radius:10px;
+}
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+.alert{
+    font-size:32px;
+    font-weight:bold;
+    text-align:center;
+    margin-top:20px;
+}
+
+.green{
+    color:#008000;
+}
+
+.yellow{
+    color:#c9a000;
+}
+
+.orange{
+    color:#ff8800;
+}
+
+.red{
+    color:#d60000;
+}
+
+.label{
+    font-weight:bold;
+}
+
+.info-row{
+    margin-top:15px;
+}
+
+.message{
+    background:#f8f8f8;
+    padding:15px;
+    border-radius:10px;
+    margin-top:10px;
+    white-space:pre-wrap;
+    line-height:1.6;
+}
+
+.footer{
+    text-align:center;
+    color:#666;
+    margin-top:20px;
+    font-size:14px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">
+    <h1>🌧 Kerala Nowcast Dashboard</h1>
+    <p>Select a district to view the latest IMD nowcast.</p>
+</div>
+
+<div class="card">
+
+<select id="districtSelect"></select>
+
+<div id="content"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const districts = {{ districts|tojson }};
+
+const select = document.getElementById("districtSelect");
+const content = document.getElementById("content");
+
+districts.forEach(d => {
+
+    const option = document.createElement("option");
+
+    option.value = d.district;
+    option.textContent = d.district;
+
+    if(d.district === "IDUKKI"){
+        option.selected = true;
+    }
+
+    select.appendChild(option);
+});
+
+function renderDistrict(name){
+
+    const d = districts.find(x => x.district === name);
+
+    let cls = d.warning_level.toLowerCase();
+
+    content.innerHTML = `
+        <div class="alert ${cls}">
+            ${d.warning_level}
+        </div>
+
+        <div class="info-row">
+            <span class="label">🕒 Issue Time:</span><br>
+            ${d.issue_time}
+        </div>
+
+        <div class="info-row">
+            <span class="label">⏰ Valid Until:</span><br>
+            ${d.valid_upto}
+        </div>
+
+        <div class="info-row">
+            <span class="label">📝 Warning Details:</span>
+        </div>
+
+        <div class="message">
+            ${d.message}
+        </div>
+
+        <div class="footer">
+            Data Source: IMD Nowcast | Auto refresh every 5 minutes
+        </div>
+    `;
+}
+
+select.addEventListener("change", () => {
+    renderDistrict(select.value);
+});
+
+renderDistrict("IDUKKI");
+
+setTimeout(() => {
+    location.reload();
+}, 300000);
+
+</script>
+
+</body>
+</html>
+    """, districts=districts)
+
+if **name** == "**main**":
+app.run(
+host="0.0.0.0",
+port=8080
+)
