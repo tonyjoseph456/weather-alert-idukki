@@ -446,14 +446,21 @@ select{width:100%;padding:12px}
             YELLOW ALERT DISTRICTS
         </div>
 
-        {% for district in yellow_districts %}
-            <a href="#"
-               class="alert-link"
-               onclick="selectDistrict('{{district}}');return false;">
-                {{district}}
-            </a>
-        {% endfor %}
+        {% if yellow_districts %}
 
+            {% for district in yellow_districts %}
+                <a href="#"
+                    class="alert-link"
+                    onclick="selectDistrict('{{district}}');return false;">
+                    {{district}}
+                </a>
+            {% endfor %}
+            {% else %}
+
+                <div style="text-align:center;color:#888;padding:10px;">
+                    No Yellow Alerts
+                </div>
+        {% endif %}
     </div>
 
     <!-- CENTER -->
@@ -475,29 +482,43 @@ select{width:100%;padding:12px}
             ORANGE ALERT DISTRICTS
         </div>
 
-        {% for district in orange_districts %}
-            <a href="#"
-               class="alert-link"
-               onclick="selectDistrict('{{district}}');return false;">
-                {{district}}
-            </a>
-        {% endfor %}
+        {% if orange_districts %}
+
+            {% for district in orange_districts %}
+                <a href="#"
+                    class="alert-link"
+                    onclick="selectDistrict('{{district}}');return false;">
+                    {{district}}
+                </a>
+            {% endfor %}
+            {% else %}
+                <div style="text-align:center;color:#888;padding:10px;">
+                    No Orange Alerts
+                </div>
+        {% endif %}
     </div>
     
     <div class="alert-panel bottom-panel red-panel">
 
-            <div class="alert-title alert-red">
-                RED ALERT DISTRICTS
-            </div>
+        <div class="alert-title alert-red">
+            RED ALERT DISTRICTS
+        </div>
+
+        {% if red_districts %}
 
             {% for district in red_districts %}
                 <a href="#"
-                   class="alert-link"
-                   onclick="selectDistrict('{{district}}');return false;">
-                    {{district}}
-                </a>
+                    class="alert-link"
+                    onclick="selectDistrict('{{district}}');return false;">
+                {{district}}
+            </a>
             {% endfor %}
-        </div>
+            {% else %}
+                <div style="text-align:center;color:#888;padding:10px;">
+                    No Red Alerts
+                </div>
+        {% endif %}
+    </div>
 
 </div>
 </div>
