@@ -60,28 +60,28 @@ def get_alert_districts():
     red = []
 
     KERALA_DISTRICTS = {
-    "THIRUVANANTHAPURAM",
-    "KOLLAM",
-    "PATHANAMTHITTA",
-    "ALAPPUZHA",
-    "KOTTAYAM",
-    "IDUKKI",
-    "ERNAKULAM",
-    "THRISSUR",
-    "PALAKKAD",
-    "MALAPPURAM",
-    "KOZHIKODE",
-    "WAYANAD",
-    "KANNUR",
-    "KASARAGOD"
-}
+        "THIRUVANANTHAPURAM",
+        "KOLLAM",
+        "PATHANAMTHITTA",
+        "ALAPPUZHA",
+        "KOTTAYAM",
+        "IDUKKI",
+        "ERNAKULAM",
+        "THRISSUR",
+        "PALAKKAD",
+        "MALAPPURAM",
+        "KOZHIKODE",
+        "WAYANAD",
+        "KANNUR",
+        "KASARAGOD"
+    }
 
     for d in fetch_imd_data():
 
-       district = d["district"].upper()
+        district = d["district"].upper()
 
-    if district not in KERALA_DISTRICTS:
-        continue
+        if district not in KERALA_DISTRICTS:
+            continue
 
         if d["warning_level"] == "YELLOW":
             yellow.append(district)
