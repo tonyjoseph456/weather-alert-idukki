@@ -312,9 +312,10 @@ def check_alert():
 @app.route("/telegram-webhook", methods=["POST"])
 def telegram_webhook():
 
-    print("WEBHOOK HIT:", text)
+    
     data = request.json
     text = data["message"]["text"]
+    print("WEBHOOK HIT:", text)
     chat_id = data["message"]["chat"]["id"]
     yellow, orange, red = get_alert_districts()
     if text == "/orange":
