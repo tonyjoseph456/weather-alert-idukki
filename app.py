@@ -410,9 +410,9 @@ def telegram_webhook():
         {clean_warning_text(d["info"])}
         """
 
-                    send_telegram_to_chat(chat_id, msg)
+                send_telegram_to_chat(chat_id, msg)
 
-                    return {"ok": True}
+                return {"ok": True}
 
     send_telegram_to_chat(
         chat_id,
