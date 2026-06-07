@@ -378,11 +378,20 @@ def telegram_webhook():
             "/red - Red Alert Districts\n"
             "/all - All Kerala Alerts\n\n"
             "District Commands:\n"
-            "/idukki\n"
+            "/alappuzha\n"
             "/ernakulam\n"
+            "/idukki\n"
+            "/kannur\n"
+            "/kasaragod\n"
+            "/kollam\n"
             "/kottayam\n"
+            "/kozhikode\n"
+            "/malappuram\n"
+            "/palakkad\n"
+            "/pathanamthitta\n"
+            "/thiruvananthapuram\n"
             "/thrissur\n"
-            "etc..."
+            "/wayanad\n"
         )
 
         send_telegram_to_chat(chat_id, msg)
