@@ -125,6 +125,16 @@ def send_telegram(message):
 
         return False
 
+def send_telegram_to_chat(chat_id, message):
+
+    requests.post(
+        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+        json={
+            "chat_id": chat_id,
+            "text": message
+        },
+        timeout=30
+    )
 
 def load_last_alert():
 
