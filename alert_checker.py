@@ -17,7 +17,8 @@ ALERT_KEYWORDS = [
     "thunderstorms",
     "lightning",
     "heavy rain",
-    "very heavy rain"
+    "very heavy rain",
+    "rain"
 ]
 
 
@@ -51,6 +52,109 @@ def save_state(data):
 
 
 def extract_idukki_alert():
+
+
+html = requests.get(
+    IMD_URL,
+    headers={"User-Agent": "Mozilla/5.0"},
+    timeout=30
+).text
+
+pattern = re.compile(
+    r'"title":\s*"([^"]+)".*?'
+    r'"color":\s*"([^"]+)".*?'
+    r'"info":\s*"([^"]+)"',
+    re.DOTALL
+)
+
+color_map = {
+    "#ffff00": "🟡 YELLOW ALERT",
+    "#ffa500": "🟠 ORANGE ALERT",
+    "#ff0000": "🔴 RED ALERT",
+    "#008000": "🟢 GREEN ALERT"
+}
+
+for match in pattern.finditer(html):
+
+    district = match.group(1)
+
+    if district != "IDUKKI":
+        continue
+
+    color = match.group(2).lower()
+
+    info = unescape(match.group(3))
+    info = info.replace("\\/", "/")
+
+    issue_match = re.search(
+        r"Time of issue:\s*(\d{4}-\d{2}-\d{2}).*?(\d{4})\s*Hrs",
+        info,
+        re.DOTALL
+    )
+
+    valid_match = re.search(
+        r"Valid upto:\s*(\d{4})\s*Hrs",
+        info,
+        re.IGNORECASE
+    )
+
+    issue_time = "Unknown"
+    valid_upto = "Unknown"
+
+    if issue_match:
+
+        dt = datetime.strptime(
+            f"{issue_match.group(1)} {issue_match.group(2)}",
+            "%Y-%m-%d %H%M"
+        )
+
+        issue_time = dt.strftime(
+            "%d %b %Y, %I:%M %p"
+        )
+
+    if valid_match:
+
+        dt = datetime.strptime(
+            valid_match.group(1),
+            "%H%M"
+        )
+
+        valid_upto = dt.strftime(
+            "%I:%M %p"
+        )
+
+    message = info
+
+    message = re.sub(
+        r"<.*?>",
+        "",
+        message
+    )
+
+    message = re.sub(
+        r"Time of issue:.*",
+        "",
+        message,
+        flags=re.DOTALL
+    )
+
+    message = re.sub(
+        r"\n\s*\n+",
+        "\n\n",
+        message
+    ).strip()
+
+    return {
+        "issue_time": issue_match.group(1) + " " + issue_match.group(2),
+        "display_issue_time": issue_time,
+        "valid_upto": valid_upto,
+        "alert_type": color_map.get(color, "ALERT"),
+        "message": message
+    }
+
+return None
+
+
 
     html = requests.get(
         IMD_URL,
@@ -118,30 +222,50 @@ def main():
 
     state = load_state()
 
-    last_issue = state.get("last_issue")
+    last_issue = state.get("last_issue", "")
+last_message = state.get("last_message", "")
 
-    if (
-        contains_alert(alert["text"])
-        and alert["issue_time"] != last_issue
-    ):
+message_changed = (
+alert["message"].strip()
+!= last_message.strip()
+)
+
+issue_changed = (
+alert["issue_time"]
+!= last_issue
+)
+
+if (
+contains_alert(alert["message"])
+and (
+issue_changed
+or message_changed
+)
+):
+
 
         send_telegram(
-            f"""⚡ WEATHER ALERT
+    f"""⚠️ IDUKKI WEATHER ALERT ⚠️
 
-District: IDUKKI
+ALERT TYPE
+{alert["alert_type"]}
 
-Issue:
-{alert["issue_time"]}
+Issue Time: {alert["display_issue_time"]}
+Valid Until: {alert["valid_upto"]}
 
-{alert["text"]}
+Warning Details
+{alert["message"]}
 """
-        )
+)
+
 
         state["last_issue"] = alert["issue_time"]
+        state["last_message"] = alert["message"]
 
-    state["last_run"] = datetime.utcnow().isoformat()
 
-    save_state(state)
+        state["last_run"] = datetime.utcnow().isoformat()
+
+        save_state(state)
 
 
 if __name__ == "__main__":
