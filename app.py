@@ -554,7 +554,7 @@ function selectDistrict(name){
 }
 sel.onchange=()=>render(sel.value);
 render('IDUKKI');
-setTimeout(()=>location.reload(),300000);
+setTimeout(()=>location.reload(),120000);
 </script></body></html>
 """,
     districts=districts,
