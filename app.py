@@ -414,10 +414,7 @@ def telegram_webhook():
 
                 return {"ok": True}
 
-    send_telegram_to_chat(
-        chat_id,
-        f"❌ District '{district_name}' not found."
-    )
+        send_telegram_to_chat(chat_id,f"❌ District '{district_name}' not found.")
     return {"ok": True}
 
 @app.route("/")
