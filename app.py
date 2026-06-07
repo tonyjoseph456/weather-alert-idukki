@@ -1,4 +1,4 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, request
 from datetime import datetime, timedelta
 from html import unescape
 import requests
@@ -51,6 +51,29 @@ def extract_valid_upto(info):
         return dt.strftime("%I:%M %p")
     except:
         return "Unknown"
+
+
+def get_alert_districts():
+
+    yellow = []
+    orange = []
+    red = []
+
+    for d in fetch_imd_data():
+
+        district = d["district"]
+
+        if d["warning_level"] == "YELLOW":
+            yellow.append(district)
+
+        elif d["warning_level"] == "ORANGE":
+            orange.append(district)
+
+        elif d["warning_level"] == "RED":
+            red.append(district)
+
+    return yellow, orange, red
+
 
 def fetch_imd_data():
     html = requests.get(IMD_URL, headers={"User-Agent":"Mozilla/5.0"}, timeout=30).text
@@ -251,6 +274,29 @@ def check_alert():
     return {
         "status": "district_not_found"
     }
+
+@app.route("/telegram-webhook", methods=["POST"])
+def telegram_webhook():
+
+    data = request.json
+
+    text = data["message"]["text"]
+    chat_id = data["message"]["chat"]["id"]
+
+    yellow, orange, red = get_alert_districts()
+
+    if text == "/orange":
+
+        msg = "🟠 Orange Alert Districts\n\n"
+
+        if orange:
+            msg += "\n".join(f"• {d}" for d in orange)
+        else:
+            msg += "No Orange Alerts"
+
+        send_telegram_to_chat(chat_id, msg)
+
+    return {"ok": True}
 
 @app.route("/")
 def dashboard():
