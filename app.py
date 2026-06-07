@@ -418,23 +418,6 @@ def telegram_webhook():
         chat_id,
         f"❌ District '{district_name}' not found."
     )
-    elif text == "/help":
-
-        msg = (
-            "🌧 Kerala Weather Bot\n\n"
-            "/yellow - Yellow Alert Districts\n"
-            "/orange - Orange Alert Districts\n"
-            "/red - Red Alert Districts\n"
-            "/all - All Kerala Alerts\n\n"
-            "District Commands:\n"
-            "/idukki\n"
-            "/ernakulam\n"
-            "/kottayam\n"
-            "/thrissur\n"
-            "etc..."
-        )
-
-        send_telegram_to_chat(chat_id, msg)
     return {"ok": True}
 
 @app.route("/")
