@@ -367,31 +367,57 @@ def telegram_webhook():
             msg += "No Red Alerts"
 
         send_telegram_to_chat(chat_id, msg)
-    elif text.startswith("/"):
+    elif text == "/help":
 
+        msg = (
+            "🌧 Kerala Weather Bot\n\n"
+            "/yellow - Yellow Alert Districts\n"
+            "/orange - Orange Alert Districts\n"
+            "/red - Red Alert Districts\n"
+            "/all - All Kerala Alerts\n\n"
+            "District Commands:\n"
+            "/idukki\n"
+            "/ernakulam\n"
+            "/kottayam\n"
+            "/thrissur\n"
+            "etc..."
+        )
+
+        send_telegram_to_chat(chat_id, msg)
+    elif text.startswith("/"):
         district_name = text[1:].upper()
 
         for d in fetch_imd_data():
 
             if d["district"].upper() == district_name:
 
-                msg = (
-                    f"⚠️ {d['district']} WEATHER ALERT ⚠️\n\n"
-                    f"🚨 Alert Type:\n"
-                    f"{d['warning_level']}\n\n"
-                    f"🕒 Issue Time:\n"
-                    f"{d['issue_time']}\n\n"
-                    f"⏰ Valid Until:\n"
-                    f"{d['valid_upto']}\n\n"
-                    f"📋 Warning Details:\n"
-                    f"{clean_warning_text(d['message'])}"
-                )
+                alert_map = {
+                    "GREEN": "🟢 GREEN ALERT",
+                    "YELLOW": "🟡 YELLOW ALERT",
+                    "ORANGE": "🟠 ORANGE ALERT",
+                    "RED": "🔴 RED ALERT"
+                }
 
-                send_telegram_to_chat(chat_id, msg)
+                msg = f"""⚠️ {d['district']} WEATHER ALERT ⚠️
 
-                return {"ok": True}
+        ALERT TYPE
+        {alert_map.get(d["warning_level"], d["warning_level"])}
 
-        send_telegram_to_chat(chat_id, f"❌ District '{district_name}' not found.")
+        Issue Time: {extract_issue_time(d["info"])}
+        Valid Until: {extract_valid_upto(d["info"])}
+
+        Warning Details
+        {clean_warning_text(d["info"])}
+        """
+
+                    send_telegram_to_chat(chat_id, msg)
+
+                    return {"ok": True}
+
+    send_telegram_to_chat(
+        chat_id,
+        f"❌ District '{district_name}' not found."
+    )
     elif text == "/help":
 
         msg = (
