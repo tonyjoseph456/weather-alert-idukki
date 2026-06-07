@@ -75,6 +75,8 @@ def fetch_imd_data():
             "info": info
         })
     return districts
+
+    
     
 def send_telegram(message):
 
@@ -235,6 +237,7 @@ def check_alert():
 
 @app.route("/")
 def dashboard():
+
     kerala = ["THIRUVANANTHAPURAM","KOLLAM","PATHANAMTHITTA","ALAPPUZHA","KOTTAYAM","IDUKKI",
               "ERNAKULAM","THRISSUR","PALAKKAD","MALAPPURAM","KOZHIKODE","WAYANAD","KANNUR","KASARAGOD"]
 
@@ -244,19 +247,39 @@ def dashboard():
         "last_check",
         "Never"
     )
-    districts = []
-    for d in fetch_imd_data():
-        if d["district"] in kerala:
-            districts.append({
-                "district": d["district"],
-                "warning_level": d["warning_level"],
-                "issue_time": extract_issue_time(d["info"]),
-                "valid_upto": extract_valid_upto(d["info"]),
-                "message": clean_warning_text(d["info"])
-            })
 
-    ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
-    last_refreshed = ist_now.strftime("%d %b %Y, %I:%M:%S %p IST")
+    districts = []
+
+    yellow_districts = []
+    orange_districts = []
+    red_districts = []
+
+    for d in fetch_imd_data():
+
+        if d["district"] not in kerala:
+            continue
+
+        district_data = {
+            "district": d["district"],
+            "warning_level": d["warning_level"],
+            "issue_time": extract_issue_time(d["info"]),
+            "valid_upto": extract_valid_upto(d["info"]),
+            "message": clean_warning_text(d["info"])
+        }
+
+        districts.append(district_data)
+
+        if d["warning_level"] == "YELLOW":
+            yellow_districts.append(d["district"])
+
+        elif d["warning_level"] == "ORANGE":
+            orange_districts.append(d["district"])
+
+        elif d["warning_level"] == "RED":
+            red_districts.append(d["district"])
+
+        ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+        last_refreshed = ist_now.strftime("%d %b %Y, %I:%M:%S %p IST")
 
     return render_template_string("""
 <!DOCTYPE html><html><head>
@@ -265,7 +288,7 @@ def dashboard():
 <style>
 body{font-family:Arial;margin:0;background:#eef2f7}
 .header{background:#0c2c69;color:#fff;padding:25px;text-align:center}
-.container{max-width:1000px;margin:auto;padding:20px}
+.container{max-width:1400px;margin:auto;padding:20px}
 .card{background:#fff;padding:20px;border-radius:16px;margin-bottom:20px;box-shadow:0 4px 12px rgba(0,0,0,.1)}
 select{width:100%;padding:12px}
 .badge{font-size:34px;font-weight:bold;text-align:center;padding:20px;border-radius:12px}
@@ -287,6 +310,64 @@ select{width:100%;padding:12px}
     border-left:4px solid #1565c0;
     border-radius:8px;
 }
+.dashboard-layout{
+    display:grid;
+    grid-template-columns:250px 1fr 250px;
+    gap:20px;
+    align-items:start;
+}
+
+.alert-panel{
+    background:#fff;
+    padding:15px;
+    border-radius:16px;
+    box-shadow:0 4px 12px rgba(0,0,0,.1);
+}
+
+.alert-title{
+    font-size:20px;
+    font-weight:bold;
+    text-align:center;
+    padding:12px;
+    border-radius:12px;
+    margin-bottom:15px;
+}
+
+.alert-yellow{
+    background:#ffeb3b;
+}
+
+.alert-orange{
+    background:#fb8c00;
+}
+
+.alert-red{
+    background:#ff0000;
+    color:white;
+}
+
+.alert-link{
+    display:block;
+    padding:8px;
+    text-decoration:none;
+    color:#222;
+    font-weight:bold;
+    border-radius:8px;
+}
+
+.alert-link:hover{
+    background:#eef2f7;
+}
+
+.bottom-panel{
+    margin-top:20px;
+}
+
+@media(max-width:1200px){
+    .dashboard-layout{
+        grid-template-columns:1fr;
+    }
+}
 @media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style></head><body>
 <div class="header"><h1>🌧 Kerala Nowcast Dashboard</h1></div>
@@ -300,8 +381,73 @@ select{width:100%;padding:12px}
     Last IMD Alert Check:
     {{ last_check }}
 </p>
-<div class="card"><select id="district"></select></div>
-<div id="content"></div>
+<div class="dashboard-layout">
+
+    <!-- LEFT -->
+
+    <div class="alert-panel">
+
+        <div class="alert-title alert-yellow">
+            YELLOW ALERT DISTRICTS
+        </div>
+
+        {% for district in yellow_districts %}
+            <a href="#"
+               class="alert-link"
+               onclick="selectDistrict('{{district}}');return false;">
+                {{district}}
+            </a>
+        {% endfor %}
+
+    </div>
+
+    <!-- CENTER -->
+
+    <div>
+
+        <div class="card">
+            <select id="district"></select>
+        </div>
+
+        <div id="content"></div>
+
+        <div class="alert-panel bottom-panel">
+
+            <div class="alert-title alert-red">
+                RED ALERT DISTRICTS
+            </div>
+
+            {% for district in red_districts %}
+                <a href="#"
+                   class="alert-link"
+                   onclick="selectDistrict('{{district}}');return false;">
+                    {{district}}
+                </a>
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    <!-- RIGHT -->
+
+    <div class="alert-panel">
+
+        <div class="alert-title alert-orange">
+            ORANGE ALERT DISTRICTS
+        </div>
+
+        {% for district in orange_districts %}
+            <a href="#"
+               class="alert-link"
+               onclick="selectDistrict('{{district}}');return false;">
+                {{district}}
+            </a>
+        {% endfor %}
+
+    </div>
+
+</div>
 </div>
 <script>
 const districts={{districts|tojson}};
@@ -324,11 +470,27 @@ function render(name){
  </div>
  <div class="card"><h3>Warning Details</h3><div class="message">${d.message}</div></div>`;
 }
+function selectDistrict(name){
+    sel.value=name;
+    render(name);
+
+    window.scrollTo({
+        top:0,
+        behavior:"smooth"
+    });
+}
 sel.onchange=()=>render(sel.value);
 render('IDUKKI');
 setTimeout(()=>location.reload(),300000);
 </script></body></html>
-""", districts=districts, last_refreshed=last_refreshed,last_check=last_check)
+""",
+    districts=districts,
+    yellow_districts=yellow_districts,
+    orange_districts=orange_districts,
+    red_districts=red_districts,
+    last_refreshed=last_refreshed,
+    last_check=last_check
+)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
