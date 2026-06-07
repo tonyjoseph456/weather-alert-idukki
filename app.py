@@ -313,23 +313,30 @@ def check_alert():
 def telegram_webhook():
 
     data = request.json
-
     text = data["message"]["text"]
     chat_id = data["message"]["chat"]["id"]
-
     yellow, orange, red = get_alert_districts()
-
     if text == "/orange":
-
         msg = "🟠 Orange Alert Districts\n\n"
-
         if orange:
             msg += "\n".join(f"• {d}" for d in orange)
         else:
             msg += "No Orange Alerts"
-
         send_telegram_to_chat(chat_id, msg)
-
+    elif text == "/yellow":
+        msg = "🟡 Yellow Alert Districts\n\n"
+        if yellow:
+            msg += "\n".join(f"• {d}" for d in yellow)
+        else:
+            msg += "No Yellow Alerts"
+        send_telegram_to_chat(chat_id, msg)
+    elif text == "/red":
+        msg = "🔴 Red Alert Districts\n\n"
+        if red:
+            msg += "\n".join(f"• {d}" for d in red)
+        else:
+            msg += "No Red Alerts"
+        send_telegram_to_chat(chat_id, msg)
     return {"ok": True}
 
 @app.route("/")
