@@ -185,7 +185,7 @@ def check_alert():
             "lightning",
             "heavy rain",
             "very heavy rain", 
-            "light rain"
+            "rain"
         ]
 
         found = any(
