@@ -201,27 +201,44 @@ def check_alert():
 
         state = load_last_alert()
 
-        if state["last_alert"] == message:
+        current_alert = (
+            d["warning_level"]
+            + "|"
+            + extract_issue_time(d["info"])
+            + "|"
+            + message
+        )
 
+        state = load_last_alert()
+
+        if state.get("last_alert") == current_alert:
             return {
                 "status": "already_sent"
             }
 
-        ist_now = (
-            datetime.utcnow()
-            + timedelta(hours=5, minutes=30)
-        )
+        alert_map = {
+            "GREEN": "🟢 GREEN ALERT",
+            "YELLOW": "🟡 YELLOW ALERT",
+            "ORANGE": "🟠 ORANGE ALERT",
+            "RED": "🔴 RED ALERT"
+            }
 
-        telegram_message = (
-            "⚠️ IDUKKI WEATHER ALERT ⚠️\n\n"
-            f"{message}\n\n"
-            f"Checked: "
-            f"{ist_now.strftime('%d %b %Y, %I:%M %p IST')}"
-        )
+        telegram_message = f"""⚠️ IDUKKI WEATHER ALERT ⚠️
+
+        ALERT TYPE
+        {alert_map.get(d["warning_level"], d["warning_level"])}
+
+        Issue Time: {extract_issue_time(d["info"])}
+        Valid Until: {extract_valid_upto(d["info"])}
+
+        Warning Details
+        {message}
+        """
 
         send_telegram(
-            telegram_message
+        telegram_message
         )
+
 
         save_last_alert(
             message
