@@ -241,7 +241,7 @@ def check_alert():
 
 
         save_last_alert(
-            message
+            current_alert
         )
 
         return {
