@@ -185,8 +185,7 @@ def check_alert():
             "lightning",
             "heavy rain",
             "very heavy rain", 
-            "light rain", 
-            "rain"
+            "light rain"
         ]
 
         found = any(
@@ -331,8 +330,26 @@ select{width:100%;padding:12px}
 .dashboard-layout{
     display:grid;
     grid-template-columns:250px 1fr 250px;
-    gap:20px;
-    align-items:start;
+    grid-template-areas:
+        "yellow center orange"
+        ". red .";
+    column-gap:40px;
+    row-gap:20px;
+}
+.left-panel{
+    grid-area:yellow;
+}
+
+.center-panel{
+    grid-area:center;
+}
+
+.right-panel{
+    grid-area:orange;
+}
+
+.red-panel{
+    grid-area:red;
 }
 
 .alert-panel{
@@ -382,10 +399,30 @@ select{width:100%;padding:12px}
 }
 
 @media(max-width:1200px){
+
     .dashboard-layout{
-        grid-template-columns:1fr;
+        display:flex;
+        flex-direction:column;
+        gap:20px;
+    }
+
+    .center-panel{
+        order:1;
+    }
+
+    .left-panel{
+        order:2;
+    }
+
+    .right-panel{
+        order:3;
+    }
+
+    .red-panel{
+        order:4;
     }
 }
+
 @media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style></head><body>
 <div class="header"><h1>🌧 Kerala Nowcast Dashboard</h1></div>
@@ -403,7 +440,7 @@ select{width:100%;padding:12px}
 
     <!-- LEFT -->
 
-    <div class="alert-panel">
+    <div class="alert-panel left-panel">
 
         <div class="alert-title alert-yellow">
             YELLOW ALERT DISTRICTS
@@ -421,35 +458,18 @@ select{width:100%;padding:12px}
 
     <!-- CENTER -->
 
-    <div>
+    <div class="center-panel">
 
         <div class="card">
             <select id="district"></select>
         </div>
 
         <div id="content"></div>
-
-        <div class="alert-panel bottom-panel">
-
-            <div class="alert-title alert-red">
-                RED ALERT DISTRICTS
-            </div>
-
-            {% for district in red_districts %}
-                <a href="#"
-                   class="alert-link"
-                   onclick="selectDistrict('{{district}}');return false;">
-                    {{district}}
-                </a>
-            {% endfor %}
-
-        </div>
-
     </div>
 
     <!-- RIGHT -->
 
-    <div class="alert-panel">
+    <div class="alert-panel right-panel">
 
         <div class="alert-title alert-orange">
             ORANGE ALERT DISTRICTS
@@ -462,8 +482,22 @@ select{width:100%;padding:12px}
                 {{district}}
             </a>
         {% endfor %}
-
     </div>
+    
+    <div class="alert-panel bottom-panel red-panel">
+
+            <div class="alert-title alert-red">
+                RED ALERT DISTRICTS
+            </div>
+
+            {% for district in red_districts %}
+                <a href="#"
+                   class="alert-link"
+                   onclick="selectDistrict('{{district}}');return false;">
+                    {{district}}
+                </a>
+            {% endfor %}
+        </div>
 
 </div>
 </div>
