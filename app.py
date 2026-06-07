@@ -337,6 +337,36 @@ def telegram_webhook():
         else:
             msg += "No Red Alerts"
         send_telegram_to_chat(chat_id, msg)
+    elif text == "/all":
+
+        msg = "🌧 KERALA ALERT STATUS\n\n"
+
+        msg += "🟡 Yellow Alert Districts\n"
+
+        if yellow:
+            msg += "\n".join(f"• {d}" for d in yellow)
+        else:
+            msg += "No Yellow Alerts"
+
+        msg += "\n\n"
+
+        msg += "🟠 Orange Alert Districts\n"
+
+        if orange:
+            msg += "\n".join(f"• {d}" for d in orange)
+        else:
+            msg += "No Orange Alerts"
+
+        msg += "\n\n"
+
+        msg += "🔴 Red Alert Districts\n"
+
+        if red:
+            msg += "\n".join(f"• {d}" for d in red)
+        else:
+            msg += "No Red Alerts"
+
+        send_telegram_to_chat(chat_id, msg)
     return {"ok": True}
 
 @app.route("/")
