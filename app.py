@@ -312,6 +312,7 @@ def check_alert():
 @app.route("/telegram-webhook", methods=["POST"])
 def telegram_webhook():
 
+    print("WEBHOOK HIT:", text)
     data = request.json
     text = data["message"]["text"]
     chat_id = data["message"]["chat"]["id"]
