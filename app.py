@@ -26,6 +26,14 @@ STATE_FILE = "last_alert.json"
 def clean_warning_text(info):
     text = unescape(info)
     text = text.replace("\\/", "/")
+
+    # Decode common IMD unicode escapes
+    text = (
+        text.replace("\\u2013", "–")
+            .replace("\\u2014", "—")
+            .replace("\\u00b0", "°")
+    )
+
     text = text.replace("<p>", "").replace("</p>", "")
     text = text.replace("</br>", "\n").replace("<br>", "\n").replace("<br/>", "\n").replace("<br />", "\n")
     text = re.sub(r"Time of issue:.*", "", text, flags=re.DOTALL | re.IGNORECASE)
