@@ -19,8 +19,16 @@ COLOR_MAP = {
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
+PUSHOVER_APP_TOKEN = os.getenv("PUSHOVER_APP_TOKEN")
+PUSHOVER_USER_KEY = os.getenv("PUSHOVER_USER_KEY")
 
 STATE_FILE = "last_alert.json"
+
+SEVERE_KEYWORDS = [
+    "thunderstorm",
+    "thunderstorms",
+    "lightning"
+]
 
 
 def clean_warning_text(info):
@@ -145,6 +153,37 @@ def send_telegram(message):
             json={
                 "chat_id": CHAT_ID,
                 "text": message
+            },
+            timeout=30
+        )
+
+        return True
+
+    except Exception as e:
+
+        print(e)
+
+        return False
+        
+def send_pushover(message):
+
+    if not PUSHOVER_APP_TOKEN or not PUSHOVER_USER_KEY:
+        return False
+
+    try:
+
+        requests.post(
+            "https://api.pushover.net/1/messages.json",
+            data={
+                "token": PUSHOVER_APP_TOKEN,
+                "user": PUSHOVER_USER_KEY,
+                "title": "⚡ Kerala Severe Weather Alert",
+                "message": message,
+
+                # Emergency priority
+                "priority": 2,
+                "retry": 60,
+                "expire": 3600
             },
             timeout=30
         )
@@ -304,6 +343,12 @@ def check_alert():
         telegram_message
         )
 
+        if any(keyword in text
+            for keyword in SEVERE_KEYWORDS
+        ):
+            send_pushover(
+            telegram_message
+            )
 
         save_last_alert(
             current_alert
