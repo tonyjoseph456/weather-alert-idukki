@@ -17,6 +17,7 @@ COLOR_MAP = {
     "#ff0000": "RED"
 }
 
+PUSHOVER_STATE_FILE = "pushover_state.json"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 PUSHOVER_APP_TOKEN = os.getenv("PUSHOVER_APP_TOKEN")
@@ -241,6 +242,22 @@ def save_last_alert(alert):
             },
             f
         )
+def pushover_enabled():
+
+    try:
+        with open(PUSHOVER_STATE_FILE, "r") as f:
+            return json.load(f).get("enabled", True)
+
+    except:
+        return True
+
+
+def set_pushover_enabled(enabled):
+
+    with open(PUSHOVER_STATE_FILE, "w") as f:
+        json.dump({"enabled": enabled}, f)
+
+
         
 def save_check_time():
 
@@ -343,11 +360,15 @@ def check_alert():
         telegram_message
         )
 
-        if any(keyword in text
-            for keyword in SEVERE_KEYWORDS
+        if (
+            pushover_enabled()
+            and any(
+                keyword in text
+                for keyword in SEVERE_KEYWORDS
+            )
         ):
             send_pushover(
-            telegram_message
+                telegram_message
             )
 
         save_last_alert(
@@ -430,6 +451,9 @@ def telegram_webhook():
             "/orange - Orange Alert Districts\n"
             "/red - Red Alert Districts\n"
             "/all - All Kerala Alerts\n\n"
+            "/pushover_on - Enable iPhone alerts\n"
+            "/pushover_off - Disable iPhone alerts\n"
+            "/pushover_status - Check status\n\n"
             "District Commands:\n"
             "/alappuzha\n"
             "/ernakulam\n"
@@ -448,6 +472,36 @@ def telegram_webhook():
         )
 
         send_telegram_to_chat(chat_id, msg)
+    elif text == "/pushover_off":
+
+        set_pushover_enabled(False)
+
+        send_telegram_to_chat(
+            chat_id,
+            "🔕 Pushover alerts disabled"
+        )
+
+    elif text == "/pushover_on":
+
+        set_pushover_enabled(True)
+
+        send_telegram_to_chat(
+            chat_id,
+            "🔔 Pushover alerts enabled"
+        )
+
+    elif text == "/pushover_status":
+
+        status = (
+            "ON"
+            if pushover_enabled()
+            else "OFF"
+        )
+
+        send_telegram_to_chat(
+            chat_id,
+            f"📱 Pushover Alerts: {status}"
+        )
     elif text.startswith("/"):
         district_name = text[1:].upper()
 
