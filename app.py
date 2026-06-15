@@ -553,6 +553,7 @@ def dashboard():
     yellow_districts = []
     orange_districts = []
     red_districts = []
+    green_districts = []
 
     for d in fetch_imd_data():
 
@@ -580,6 +581,17 @@ def dashboard():
 
         ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
         last_refreshed = ist_now.strftime("%d %b %Y, %I:%M:%S %p IST")
+    
+    alerted_districts = set(
+    yellow_districts
+    + orange_districts
+    + red_districts
+)
+
+    green_districts = sorted([
+        d for d in kerala
+        if d not in alerted_districts
+    ])
 
     return render_template_string("""
 <!DOCTYPE html><html><head>
@@ -614,6 +626,7 @@ select{width:100%;padding:12px}
     display:grid;
     grid-template-columns:250px 1fr 250px;
     grid-template-areas:
+        ". green ."
         "yellow center orange"
         ". red .";
     column-gap:40px;
@@ -633,6 +646,10 @@ select{width:100%;padding:12px}
 
 .red-panel{
     grid-area:red;
+}
+
+.green-panel{
+    grid-area:green;
 }
 
 .alert-panel{
@@ -683,6 +700,10 @@ select{width:100%;padding:12px}
 
 @media(max-width:1200px){
 
+    .green-panel{
+        order:1;
+    }
+    
     .dashboard-layout{
         display:flex;
         flex-direction:column;
@@ -690,22 +711,34 @@ select{width:100%;padding:12px}
     }
 
     .center-panel{
-        order:1;
-    }
-
-    .left-panel{
         order:2;
     }
 
-    .right-panel{
+    .left-panel{
         order:3;
     }
 
-    .red-panel{
+    .right-panel{
         order:4;
     }
-}
 
+    .red-panel{
+        order:5;
+    }
+}
+#refreshBtn{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    width:48px;
+    height:48px;
+    border:none;
+    border-radius:24px;
+    background:rgba(255,255,255,.75);
+    backdrop-filter:blur(10px);
+    font-size:24px;
+    box-shadow:0 2px 8px rgba(0,0,0,.12);
+}
 @media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style></head><body>
 <div class="header"><h1>🌧 Kerala Nowcast Dashboard</h1></div>
@@ -721,6 +754,32 @@ select{width:100%;padding:12px}
 </p>
 <div class="dashboard-layout">
 
+<div class="alert-panel green-panel">
+
+    <div class="alert-title"
+         style="background:#228B00;color:white;">
+        GREEN ALERT DISTRICTS
+    </div>
+
+    {% if green_districts %}
+
+        {% for district in green_districts %}
+            <a href="#"
+               class="alert-link"
+               onclick="selectDistrict('{{district}}');return false;">
+               {{district}}
+            </a>
+        {% endfor %}
+
+    {% else %}
+
+        <div style="text-align:center;color:#888;padding:10px;">
+            No Green Alerts
+        </div>
+
+    {% endif %}
+
+</div>
     <!-- LEFT -->
 
     <div class="alert-panel left-panel">
@@ -805,6 +864,9 @@ select{width:100%;padding:12px}
 
 </div>
 </div>
+<button id="refreshBtn" onclick="location.reload()">
+    ⟳
+</button>
 <script>
 const districts={{districts|tojson}};
 const sel=document.getElementById('district');
@@ -841,6 +903,7 @@ setTimeout(()=>location.reload(),120000);
 </script></body></html>
 """,
     districts=districts,
+    green_districts=green_districts,
     yellow_districts=yellow_districts,
     orange_districts=orange_districts,
     red_districts=red_districts,
