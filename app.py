@@ -387,7 +387,11 @@ Valid Until: {extract_valid_upto(d["info"])}
 Warning Details
 {message}
 """
-
+        print(
+            "ALERT SENT:",
+            d["district"],
+            d["warning_level"]
+        )
         send_telegram(telegram_message)
 
         if (
