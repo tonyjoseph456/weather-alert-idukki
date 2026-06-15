@@ -930,6 +930,26 @@ function selectDistrict(name){
 }
 
 render('IDUKKI');
+function rearrangeRedPanel() {
+
+    const redPanel = document.querySelector('.red-panel');
+    const dashboard = document.querySelector('.dashboard-layout');
+    const centerPanel = document.querySelector('.center-panel');
+
+    if (window.innerWidth <= 1200) {
+
+        // move red to bottom on mobile
+        dashboard.appendChild(redPanel);
+
+    } else {
+
+        // move red back into center panel on desktop
+        centerPanel.appendChild(redPanel);
+    }
+}
+
+window.addEventListener('load', rearrangeRedPanel);
+window.addEventListener('resize', rearrangeRedPanel);
 setTimeout(()=>location.reload(),120000);
 </script></body></html>
 """,
