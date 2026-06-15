@@ -248,36 +248,45 @@ def load_last_alert():
 
     try:
 
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
+        with open(
+            STATE_FILE,
+            "r",
+            encoding="utf-8"
+        ) as f:
 
             return json.load(f)
 
     except:
 
         return {
-            "last_alert": "",
+            "alerts": {},
             "last_check": ""
         }
 
-
-def save_last_alert(alert):
+def save_last_alert(state):
 
     ist_now = (
         datetime.utcnow()
         + timedelta(hours=5, minutes=30)
     )
 
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
+    state["last_check"] = ist_now.strftime(
+        "%d %b %Y, %I:%M:%S %p IST"
+    )
+
+    with open(
+        STATE_FILE,
+        "w",
+        encoding="utf-8"
+    ) as f:
 
         json.dump(
-            {
-                "last_alert": alert,
-                "last_check": ist_now.strftime(
-                    "%d %b %Y, %I:%M:%S %p IST"
-                )
-            },
-            f
+            state,
+            f,
+            ensure_ascii=False
         )
+
+        
 def pushover_enabled():
 
     try:
@@ -366,7 +375,17 @@ def check_alert():
 
         state = load_last_alert()
 
-        if state.get("last_alert") == current_alert:
+        district_alerts = state.get(
+            "alerts",
+            {}
+        )
+
+        if (
+            district_alerts.get(
+                d["district"]
+            )
+            == current_alert
+        ):
             continue
 
         alert_map = {
@@ -403,7 +422,18 @@ Warning Details
         ):
             send_pushover(telegram_message)
 
-        save_last_alert(current_alert)
+        state = load_last_alert()
+
+        state.setdefault(
+            "alerts",
+            {}
+        )
+
+        state["alerts"][
+            d["district"]
+        ] = current_alert
+
+        save_last_alert(state)
 
         alert_sent = True
 
