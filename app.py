@@ -378,12 +378,43 @@ def telegram_webhook():
     print("WEBHOOK HIT:", text)
     chat_id = data["message"]["chat"]["id"]
     yellow, orange, red = get_alert_districts()
+    KERALA_DISTRICTS = [
+    "ALAPPUZHA",
+    "ERNAKULAM",
+    "IDUKKI",
+    "KANNUR",
+    "KASARAGOD",
+    "KOLLAM",
+    "KOTTAYAM",
+    "KOZHIKODE",
+    "MALAPPURAM",
+    "PALAKKAD",
+    "PATHANAMTHITTA",
+    "THIRUVANANTHAPURAM",
+    "THRISSUR",
+    "WAYANAD"
+]
+
+    green = sorted([
+        d for d in KERALA_DISTRICTS
+        if d not in (yellow + orange + red)
+    ])
     if text == "/orange":
         msg = "🟠 Orange Alert Districts\n\n"
         if orange:
             msg += "\n".join(f"• {d}" for d in orange)
         else:
             msg += "No Orange Alerts"
+        send_telegram_to_chat(chat_id, msg)
+    elif text == "/green":
+
+        msg = "🟢 Green Alert Districts\n\n"
+
+        if green:
+            msg += "\n".join(f"• {d}" for d in green)
+        else:
+            msg += "No Green Alert Districts"
+
         send_telegram_to_chat(chat_id, msg)
     elif text == "/yellow":
         msg = "🟡 Yellow Alert Districts\n\n"
@@ -402,6 +433,15 @@ def telegram_webhook():
     elif text == "/all":
 
         msg = "🌧 KERALA ALERT STATUS\n\n"
+        
+        msg += "🟢 Green Alert Districts\n"
+        
+        if green:
+            msg += "\n".join(f"• {d}" for d in green)
+        else:
+            msg += "No Green Alert Districts"
+
+        msg += "\n\n"
 
         msg += "🟡 Yellow Alert Districts\n"
 
@@ -433,6 +473,7 @@ def telegram_webhook():
 
         msg = (
             "🌧 Kerala Weather Bot\n\n"
+            "/green - Green Alert Districts\n"
             "/yellow - Yellow Alert Districts\n"
             "/orange - Orange Alert Districts\n"
             "/red - Red Alert Districts\n"
