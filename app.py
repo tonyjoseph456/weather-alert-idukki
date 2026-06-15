@@ -28,7 +28,11 @@ STATE_FILE = "last_alert.json"
 SEVERE_KEYWORDS = [
     "thunderstorm",
     "thunderstorms",
-    "lightning"
+    "lightning",
+    "thundershower",
+    "thunder shower",
+    "thundershowers",
+    "thunder showers"
 ]
 
 
@@ -300,25 +304,7 @@ def check_alert():
 
         text = message.lower()
 
-        keywords = [
-            "thunderstorm",
-            "thunderstorms",
-            "lightning",
-            "heavy rain",
-            "very heavy rain", 
-            "rain"
-        ]
-
-        found = any(
-            keyword in text
-            for keyword in keywords
-        )
-
-        if not found:
-
-            return {
-                "status": "no_alert"
-            }
+       
 
         state = load_last_alert()
 
@@ -579,8 +565,8 @@ def dashboard():
         elif d["warning_level"] == "RED":
             red_districts.append(d["district"])
 
-        ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
-        last_refreshed = ist_now.strftime("%d %b %Y, %I:%M:%S %p IST")
+    ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    last_refreshed = ist_now.strftime("%d %b %Y, %I:%M:%S %p IST")
     
     alerted_districts = set(
     yellow_districts
