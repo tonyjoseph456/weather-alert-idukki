@@ -581,6 +581,10 @@ def dashboard():
     orange_districts = []
     red_districts = []
     green_districts = []
+    
+    yellow_districts = sorted(yellow_districts)
+    orange_districts = sorted(orange_districts)
+    red_districts = sorted(red_districts)
 
     for d in fetch_imd_data():
 
@@ -609,6 +613,10 @@ def dashboard():
     ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     last_refreshed = ist_now.strftime("%d %b %Y, %I:%M:%S %p IST")
     
+    yellow_districts = sorted(yellow_districts)
+    orange_districts = sorted(orange_districts)
+    red_districts = sorted(red_districts)
+
     alerted_districts = set(
     yellow_districts
     + orange_districts
@@ -654,8 +662,7 @@ select{width:100%;padding:12px}
     grid-template-columns:250px 1fr 250px;
     grid-template-areas:
         ". green ."
-        "yellow center orange"
-        ". red .";
+        "yellow center orange";
     column-gap:40px;
     row-gap:20px;
 }
@@ -669,10 +676,6 @@ select{width:100%;padding:12px}
 
 .right-panel{
     grid-area:orange;
-}
-
-.red-panel{
-    grid-area:red;
 }
 
 .green-panel{
@@ -749,9 +752,6 @@ select{width:100%;padding:12px}
         order:4;
     }
 
-    .red-panel{
-        order:5;
-    }
 }
 #refreshBtn{
     position:fixed;
@@ -836,11 +836,30 @@ select{width:100%;padding:12px}
 
     <div class="center-panel">
 
-        <div class="card">
-            <select id="district"></select>
-        </div>
+        
 
         <div id="content"></div>
+        <div class="alert-panel bottom-panel red-panel">
+
+    <div class="alert-title alert-red">
+        RED ALERT DISTRICTS
+    </div>
+
+    {% if red_districts %}
+
+        {% for district in red_districts %}
+            <a href="#"
+                class="alert-link"
+                onclick="selectDistrict('{{district}}');return false;">
+            {{district}}
+        </a>
+        {% endfor %}
+        {% else %}
+            <div style="text-align:center;color:#888;padding:10px;">
+                No Red Alerts
+            </div>
+    {% endif %}
+</div>
     </div>
 
     <!-- RIGHT -->
@@ -867,42 +886,16 @@ select{width:100%;padding:12px}
         {% endif %}
     </div>
     
-    <div class="alert-panel bottom-panel red-panel">
-
-        <div class="alert-title alert-red">
-            RED ALERT DISTRICTS
-        </div>
-
-        {% if red_districts %}
-
-            {% for district in red_districts %}
-                <a href="#"
-                    class="alert-link"
-                    onclick="selectDistrict('{{district}}');return false;">
-                {{district}}
-            </a>
-            {% endfor %}
-            {% else %}
-                <div style="text-align:center;color:#888;padding:10px;">
-                    No Red Alerts
-                </div>
-        {% endif %}
-    </div>
-
+    
 </div>
+
 </div>
 <button id="refreshBtn" onclick="location.reload()">
     ⟳
 </button>
 <script>
 const districts={{districts|tojson}};
-const sel=document.getElementById('district');
-districts.forEach(d=>{
- let o=document.createElement('option');
- o.value=d.district;o.textContent=d.district;
- if(d.district==='IDUKKI') o.selected=true;
- sel.appendChild(o);
-});
+
 function render(name){
  const d=districts.find(x=>x.district===name);
  const cls=d.warning_level.toLowerCase();
@@ -916,7 +909,6 @@ function render(name){
  <div class="card"><h3>Warning Details</h3><div class="message">${d.message}</div></div>`;
 }
 function selectDistrict(name){
-    sel.value=name;
     render(name);
 
     window.scrollTo({
@@ -924,7 +916,7 @@ function selectDistrict(name){
         behavior:"smooth"
     });
 }
-sel.onchange=()=>render(sel.value);
+
 render('IDUKKI');
 setTimeout(()=>location.reload(),120000);
 </script></body></html>
