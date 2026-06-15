@@ -730,13 +730,7 @@ select{width:100%;padding:12px}
 
 @media(max-width:1200px){
 
- #refreshBtn{
-        width:72px;
-        height:72px;
-        font-size:38px;
-        bottom:16px;
-        right:16px;
-    }
+ 
     .green-panel{
         order:1;
     }
@@ -762,16 +756,17 @@ select{width:100%;padding:12px}
 }
 #refreshBtn{
     position:fixed;
-    bottom:20px;
-    right:20px;
-    width:48px;
-    height:48px;
+    bottom:25px;
+    right:25px;
+    width:80px;
+    height:80px;
     border:none;
-    border-radius:24px;
-    background:rgba(255,255,255,.75);
+    border-radius:50%;
+    background:rgba(255,255,255,.85);
     backdrop-filter:blur(10px);
-    font-size:24px;
-    box-shadow:0 2px 8px rgba(0,0,0,.12);
+    font-size:38px;
+    box-shadow:0 4px 12px rgba(0,0,0,.2);
+    z-index:9999;
 }
 @media(max-width:700px){.grid{grid-template-columns:1fr}}
 </style></head><body>
