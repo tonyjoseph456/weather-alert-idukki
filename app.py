@@ -8,6 +8,7 @@ import json
 
 app = Flask(__name__)
 
+
 IMD_URL = "https://mausam.imd.gov.in/imd_latest/contents/districtwisewarnings_mc.php?id=4"
 
 COLOR_MAP = {
