@@ -756,18 +756,21 @@ select{width:100%;padding:12px}
 }
 #refreshBtn{
     position:fixed;
-    bottom:25px;
-    right:25px;
-    width:80px;
-    height:80px;
+    bottom:20px;
+    right:20px;
+
+    width:64px;
+    height:64px;
+
     border:none;
     border-radius:50%;
-    background:rgba(255,255,255,.85);
-    backdrop-filter:blur(10px);
-    font-size:52px;
-    font-weight:bold;
-    line-height:80px;
-    text-align:center;
+
+    background:#007aff;
+    color:white;
+
+    font-size:30px;
+    line-height:64px;
+
     box-shadow:0 4px 12px rgba(0,0,0,.2);
     z-index:9999;
 }
@@ -896,7 +899,7 @@ select{width:100%;padding:12px}
 
 </div>
 <button id="refreshBtn" onclick="location.reload()">
-    ⟳
+    ↻
 </button>
 <script>
 const districts={{districts|tojson}};
