@@ -664,7 +664,7 @@ select{width:100%;padding:12px}
         ". green ."
         "yellow center orange";
     column-gap:40px;
-    row-gap:20px;
+    row-gap:15px;
 }
 .left-panel{
     grid-area:yellow;
@@ -730,11 +730,7 @@ select{width:100%;padding:12px}
 
 @media(max-width:1200px){
 
- 
-    .green-panel{
-        order:1;
-    }
-    
+         
     .dashboard-layout{
         display:flex;
         flex-direction:column;
@@ -742,6 +738,10 @@ select{width:100%;padding:12px}
     }
 
     .center-panel{
+        order:1;
+    }
+    
+    .green-panel{
         order:2;
     }
 
@@ -751,6 +751,10 @@ select{width:100%;padding:12px}
 
     .right-panel{
         order:4;
+    }
+    
+    .red-panel{
+        order:5;
     }
 
 }
@@ -844,30 +848,30 @@ select{width:100%;padding:12px}
 
     <div class="center-panel">
 
-        
-
         <div id="content"></div>
+        
         <div class="alert-panel bottom-panel red-panel">
 
-    <div class="alert-title alert-red">
-        RED ALERT DISTRICTS
-    </div>
+        <div class="alert-title alert-red">
+            RED ALERT DISTRICTS
+        </div>
 
-    {% if red_districts %}
+        {% if red_districts %}
 
         {% for district in red_districts %}
             <a href="#"
                 class="alert-link"
                 onclick="selectDistrict('{{district}}');return false;">
-            {{district}}
-        </a>
+                {{district}}
+            </a>
         {% endfor %}
         {% else %}
             <div style="text-align:center;color:#888;padding:10px;">
                 No Red Alerts
             </div>
-    {% endif %}
-</div>
+        {% endif %}
+    </div>
+        
     </div>
 
     <!-- RIGHT -->
@@ -893,7 +897,7 @@ select{width:100%;padding:12px}
                 </div>
         {% endif %}
     </div>
-    
+      
     
 </div>
 
