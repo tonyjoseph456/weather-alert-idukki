@@ -323,9 +323,17 @@ def test_alert():
         "status": "test_sent"
     }
     
+@app.route("/debug-subs")
+def debug_subs():
+    return {
+        "subscriptions": load_subscriptions()
+    }
+    
 @app.route("/check-alert")
 def check_alert():
 
+    print("SUBS FILE EXISTS:", os.path.exists(SUBSCRIPTIONS_FILE))
+    print("SUBSCRIPTIONS:", load_subscriptions())
     alert_sent = False
 
     save_check_time()
