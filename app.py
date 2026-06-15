@@ -18,6 +18,7 @@ COLOR_MAP = {
 }
 
 PUSHOVER_STATE_FILE = "pushover_state.json"
+SUBSCRIPTIONS_FILE = "subscriptions.json"
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 PUSHOVER_APP_TOKEN = os.getenv("PUSHOVER_APP_TOKEN")
@@ -35,7 +36,38 @@ SEVERE_KEYWORDS = [
     "thunder showers"
 ]
 
+def load_subscriptions():
 
+    try:
+
+        with open(SUBSCRIPTIONS_FILE, "r") as f:
+
+            data = json.load(f)
+
+            return data.get(
+                "districts",
+                ["IDUKKI"]
+            )
+
+    except:
+
+        return ["IDUKKI"]
+
+
+def save_subscriptions(districts):
+
+    with open(SUBSCRIPTIONS_FILE, "w") as f:
+
+        json.dump(
+            {
+                "districts": sorted(
+                    list(set(districts))
+                )
+            },
+            f,
+            indent=4
+        )
+        
 def clean_warning_text(info):
     text = unescape(info)
     text = text.replace("\\/", "/")
@@ -295,9 +327,11 @@ def test_alert():
 def check_alert():
 
     save_check_time()
+    subscribed_districts = load_subscriptions()
+
     for d in fetch_imd_data():
 
-        if d["district"] != "IDUKKI":
+        if d["district"].upper() not in subscribed_districts:
             continue
 
         message = clean_warning_text(d["info"])
@@ -309,7 +343,9 @@ def check_alert():
         state = load_last_alert()
 
         current_alert = (
-            d["warning_level"]
+            d["district"]
+            + "|"
+            + d["warning_level"]
             + "|"
             + extract_issue_time(d["info"])
             + "|"
@@ -481,6 +517,9 @@ def telegram_webhook():
             "/pushover_on - Enable iPhone alerts\n"
             "/pushover_off - Disable iPhone alerts\n"
             "/pushover_status - Check status\n\n"
+            "/subscribe kottayam - Subscribe to a new district to receive alerts \n"
+            "/unsubscribe ernakulam - Unsubscribe to the district alerts\n"
+            "/subscriptions - See currently subscribed districts for notification alerts\n\n"
             "District Commands:\n"
             "/alappuzha\n"
             "/ernakulam\n"
@@ -528,6 +567,68 @@ def telegram_webhook():
         send_telegram_to_chat(
             chat_id,
             f"📱 Pushover Alerts: {status}"
+        )
+    elif text.startswith("/subscribe "):
+
+        district = (
+            text.replace("/subscribe ", "")
+            .strip()
+            .upper()
+        )
+
+        districts = load_subscriptions()
+
+        if district not in districts:
+
+            districts.append(district)
+
+            save_subscriptions(
+                districts
+            )
+
+        send_telegram_to_chat(
+            chat_id,
+            f"✅ Subscribed to {district}"
+        )
+    elif text.startswith("/unsubscribe "):
+
+        district = (
+            text.replace("/unsubscribe ", "")
+            .strip()
+            .upper()
+        )
+
+        districts = load_subscriptions()
+
+        if district in districts:
+
+            districts.remove(
+                district
+            )
+
+            save_subscriptions(
+                districts
+            )
+
+        send_telegram_to_chat(
+            chat_id,
+            f"❌ Unsubscribed from {district}"
+        )
+    elif text == "/subscriptions":
+
+        districts = load_subscriptions()
+
+        msg = (
+            "📍 Subscribed Districts\n\n"
+            + "\n".join(
+                f"• {d}"
+                for d in districts
+            )
+        )
+
+        send_telegram_to_chat(
+            chat_id,
+            msg
         )
     elif text.startswith("/"):
         district_name = text[1:].upper()
