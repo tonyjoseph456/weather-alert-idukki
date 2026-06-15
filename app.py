@@ -764,7 +764,10 @@ select{width:100%;padding:12px}
     border-radius:50%;
     background:rgba(255,255,255,.85);
     backdrop-filter:blur(10px);
-    font-size:38px;
+    font-size:52px;
+    font-weight:bold;
+    line-height:80px;
+    text-align:center;
     box-shadow:0 4px 12px rgba(0,0,0,.2);
     z-index:9999;
 }
