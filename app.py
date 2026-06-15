@@ -8,7 +8,6 @@ import json
 
 app = Flask(__name__)
 
-
 IMD_URL = "https://mausam.imd.gov.in/imd_latest/contents/districtwisewarnings_mc.php?id=4"
 
 COLOR_MAP = {
@@ -327,21 +326,25 @@ def test_alert():
 @app.route("/check-alert")
 def check_alert():
 
+    alert_sent = False
+
     save_check_time()
+
     subscribed_districts = load_subscriptions()
 
     for d in fetch_imd_data():
+        print(
+            "CHECKING:",
+            d["district"],
+            "SUBSCRIBED:",
+            subscribed_districts
+        )
 
         if d["district"].upper() not in subscribed_districts:
             continue
 
         message = clean_warning_text(d["info"])
-
         text = message.lower()
-
-       
-
-        state = load_last_alert()
 
         current_alert = (
             d["district"]
@@ -356,32 +359,28 @@ def check_alert():
         state = load_last_alert()
 
         if state.get("last_alert") == current_alert:
-            return {
-                "status": "already_sent"
-            }
+            continue
 
         alert_map = {
             "GREEN": "🟢 GREEN ALERT",
             "YELLOW": "🟡 YELLOW ALERT",
             "ORANGE": "🟠 ORANGE ALERT",
             "RED": "🔴 RED ALERT"
-            }
+        }
 
-        telegram_message = f"""⚠️ IDUKKI WEATHER ALERT ⚠️
+        telegram_message = f"""⚠️ {d['district']} WEATHER ALERT ⚠️
 
-        ALERT TYPE
-        {alert_map.get(d["warning_level"], d["warning_level"])}
+ALERT TYPE
+{alert_map.get(d["warning_level"], d["warning_level"])}
 
-        Issue Time: {extract_issue_time(d["info"])}
-        Valid Until: {extract_valid_upto(d["info"])}
+Issue Time: {extract_issue_time(d["info"])}
+Valid Until: {extract_valid_upto(d["info"])}
 
-        Warning Details
-        {message}
-        """
+Warning Details
+{message}
+"""
 
-        send_telegram(
-        telegram_message
-        )
+        send_telegram(telegram_message)
 
         if (
             pushover_enabled()
@@ -390,20 +389,19 @@ def check_alert():
                 for keyword in SEVERE_KEYWORDS
             )
         ):
-            send_pushover(
-                telegram_message
-            )
+            send_pushover(telegram_message)
 
-        save_last_alert(
-            current_alert
-        )
+        save_last_alert(current_alert)
 
+        alert_sent = True
+
+    if alert_sent:
         return {
             "status": "alert_sent"
         }
 
     return {
-        "status": "district_not_found"
+        "status": "no_new_alerts"
     }
 
 @app.route("/telegram-webhook", methods=["POST"])
