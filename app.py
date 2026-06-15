@@ -730,6 +730,13 @@ select{width:100%;padding:12px}
 
 @media(max-width:1200px){
 
+ #refreshBtn{
+        width:72px;
+        height:72px;
+        font-size:38px;
+        bottom:16px;
+        right:16px;
+    }
     .green-panel{
         order:1;
     }
