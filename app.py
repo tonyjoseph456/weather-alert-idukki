@@ -800,35 +800,44 @@ select{width:100%;padding:12px}
     border-radius:8px;
 }
 .dashboard-layout{
+    max-width:1000px;
+    margin:auto;
+}
+.alerts-row{
     display:grid;
-    grid-template-columns:250px 1fr 250px;
-    grid-template-areas:
-        ". green ."
-        "yellow center orange";
-    column-gap:40px;
-    row-gap:15px;
-}
-.left-panel{
-    grid-area:yellow;
+    grid-template-columns:repeat(4, 1fr);
+    gap:20px;
+
+    max-width:1000px;
+    margin:30px auto;
 }
 
-.center-panel{
-    grid-area:center;
+.top-section{
+    max-width:1000px;
+    margin:0 auto 30px auto;
 }
 
-.right-panel{
-    grid-area:orange;
-}
-
-.green-panel{
-    grid-area:green;
-}
 
 .alert-panel{
     background:#fff;
     padding:15px;
     border-radius:16px;
     box-shadow:0 4px 12px rgba(0,0,0,.1);
+
+    min-height:320px;
+
+    display:flex;
+    flex-direction:column;
+}
+
+.alert-link{
+    display:block;
+    padding:8px;
+    text-decoration:none;
+    color:#222;
+    font-weight:bold;
+    border-radius:8px;
+    margin-bottom:4px;
 }
 
 .alert-title{
@@ -872,6 +881,10 @@ select{width:100%;padding:12px}
 
 @media(max-width:1200px){
 
+    .alerts-row{
+            display:flex;
+            flex-direction:column;
+    }
          
     .dashboard-layout{
         display:flex;
@@ -885,18 +898,26 @@ select{width:100%;padding:12px}
     
     .green-panel{
         order:2;
+        min-height:120px !important;
+        height:auto !important;
     }
 
     .left-panel{
         order:3;
+        min-height:120px !important;
+        height:auto !important;
     }
 
     .right-panel{
         order:4;
+        min-height:120px !important;
+        height:auto !important;
     }
     
     .red-panel{
         order:5;
+        min-height:120px !important;
+        height:auto !important;
     }
 
 }
@@ -933,35 +954,52 @@ select{width:100%;padding:12px}
     Last IMD Alert Check:
     {{ last_check }}
 </p>
-<div class="dashboard-layout">
+<!-- TOP SECTION -->
 
-<div class="alert-panel green-panel">
+<div class="top-section">
 
-    <div class="alert-title"
-         style="background:#228B00;color:white;">
-        GREEN ALERT DISTRICTS
+    <div class="center-panel">
+
+        <div id="content"></div>
+
     </div>
 
-    {% if green_districts %}
-
-        {% for district in green_districts %}
-            <a href="#"
-               class="alert-link"
-               onclick="selectDistrict('{{district}}');return false;">
-               {{district}}
-            </a>
-        {% endfor %}
-
-    {% else %}
-
-        <div style="text-align:center;color:#888;padding:10px;">
-            No Green Alerts
-        </div>
-
-    {% endif %}
-
 </div>
-    <!-- LEFT -->
+
+<!-- ALERT CARDS ROW -->
+
+<div class="alerts-row">
+
+    <!-- GREEN -->
+
+    <div class="alert-panel green-panel">
+
+		<div class="alert-title"
+			 style="background:#228B00;color:white;">
+			GREEN ALERT DISTRICTS
+		</div>
+
+		{% if green_districts %}
+
+			{% for district in green_districts %}
+				<a href="#"
+				   class="alert-link"
+				   onclick="selectDistrict('{{district}}');return false;">
+				   {{district}}
+				</a>
+			{% endfor %}
+
+		{% else %}
+
+			<div style="text-align:center;color:#888;padding:10px;">
+				No Green Alerts
+			</div>
+
+		{% endif %}
+
+	</div>
+
+    <!-- YELLOW -->
 
     <div class="alert-panel left-panel">
 
@@ -978,45 +1016,15 @@ select{width:100%;padding:12px}
                     {{district}}
                 </a>
             {% endfor %}
-            {% else %}
+		{% else %}
 
-                <div style="text-align:center;color:#888;padding:10px;">
-                    No Yellow Alerts
-                </div>
+			<div style="text-align:center;color:#888;padding:10px;">
+				No Yellow Alerts
+			</div>
         {% endif %}
     </div>
 
-    <!-- CENTER -->
-
-    <div class="center-panel">
-
-        <div id="content"></div>
-        
-        <div class="alert-panel bottom-panel red-panel">
-
-        <div class="alert-title alert-red">
-            RED ALERT DISTRICTS
-        </div>
-
-        {% if red_districts %}
-
-        {% for district in red_districts %}
-            <a href="#"
-                class="alert-link"
-                onclick="selectDistrict('{{district}}');return false;">
-                {{district}}
-            </a>
-        {% endfor %}
-        {% else %}
-            <div style="text-align:center;color:#888;padding:10px;">
-                No Red Alerts
-            </div>
-        {% endif %}
-    </div>
-        
-    </div>
-
-    <!-- RIGHT -->
+    <!-- ORANGE -->
 
     <div class="alert-panel right-panel">
 
@@ -1033,15 +1041,35 @@ select{width:100%;padding:12px}
                     {{district}}
                 </a>
             {% endfor %}
-            {% else %}
-                <div style="text-align:center;color:#888;padding:10px;">
-                    No Orange Alerts
-                </div>
+		{% else %}
+			<div style="text-align:center;color:#888;padding:10px;">
+				No Orange Alerts
+			</div>
         {% endif %}
     </div>
-      
-    
-</div>
+
+    <!-- RED -->
+
+    <div class="alert-panel red-panel">
+		<div class="alert-title alert-red">
+				RED ALERT DISTRICTS
+		</div>
+
+        {% if red_districts %}
+
+			{% for district in red_districts %}
+				<a href="#"
+					class="alert-link"
+					onclick="selectDistrict('{{district}}');return false;">
+					{{district}}
+				</a>
+			{% endfor %}
+        {% else %}
+            <div style="text-align:center;color:#888;padding:10px;">
+                No Red Alerts
+            </div>
+        {% endif %}
+    </div>
 
 </div>
 <button id="refreshBtn" onclick="location.reload()">
@@ -1072,23 +1100,7 @@ function selectDistrict(name){
 }
 
 render('IDUKKI');
-function rearrangeRedPanel() {
 
-    const redPanel = document.querySelector('.red-panel');
-    const dashboard = document.querySelector('.dashboard-layout');
-    const centerPanel = document.querySelector('.center-panel');
-
-    if (window.innerWidth <= 1200) {
-
-        // move red to bottom on mobile
-        dashboard.appendChild(redPanel);
-
-    } else {
-
-        // move red back into center panel on desktop
-        centerPanel.appendChild(redPanel);
-    }
-}
 
 window.addEventListener('load', rearrangeRedPanel);
 window.addEventListener('resize', rearrangeRedPanel);
