@@ -1101,9 +1101,6 @@ function selectDistrict(name){
 
 render('IDUKKI');
 
-
-window.addEventListener('load', rearrangeRedPanel);
-window.addEventListener('resize', rearrangeRedPanel);
 setTimeout(()=>location.reload(),120000);
 </script></body></html>
 """,
